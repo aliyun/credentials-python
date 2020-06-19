@@ -1,6 +1,10 @@
 import os
 
-DEFAULT_CREDENTIALS_FILE_PATH = os.environ['HOME'] + "/.alibabacloud/credentials.ini"
+try:
+    DEFAULT_CREDENTIALS_FILE_PATH = os.environ['HOME'] + "/.alibabacloud/credentials.ini"
+except KeyError:
+    DEFAULT_CREDENTIALS_FILE_PATH = os.environ['HOMEPATH'] + "/.alibabacloud/credentials.ini"
+
 INI_ACCESS_KEY_ID = "access_key_id"
 INI_ACCESS_KEY_IDSECRET = "access_key_secret"
 INI_TYPE = "type"
