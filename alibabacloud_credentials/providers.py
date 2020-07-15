@@ -248,10 +248,16 @@ class ProfileCredentialsProvider(AlibabaCloudCredentialsProvider):
         conf.read(file_path, encoding='utf-8')
         ini_map = dict(conf._sections)
         for k in dict(conf._sections):
-            ini_map[k] = dict(ini_map[k])
+            option = dict(ini_map[k])
+            for key, value in dict(ini_map[k]).items():
+                if '#' in value:
+                    option[key] = value.split('#')[0].strip()
+                else:
+                    option[key] = value.strip()
+            ini_map[k] = option
         client_config = ini_map.get(au.client_type)
         if client_config is None:
-            raise CredentialException("Client is not open in the specified credentials file")
+            return
         return self._create_credential(client_config)
 
     def _create_credential(self, config):
