@@ -1,3 +1,7 @@
+### 2020-07-15 Version 0.0.4
+
+* Processed INI file comments
+
 ### 2020-07-07 Version 0.0.3
 * Supported python 3.4
 
