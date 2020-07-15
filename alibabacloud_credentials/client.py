@@ -1,4 +1,5 @@
 from alibabacloud_credentials import providers, credentials
+from alibabacloud_credentials.models import Config
 from alibabacloud_credentials.utils import auth_constant as ac
 from functools import wraps
 
@@ -19,6 +20,7 @@ class Client:
 
     def __init__(self, config=None):
         if config is None:
+            config = Config()
             provider = providers.DefaultCredentialsProvider()
             self.cloud_credential = provider.get_credentials()
         self.cloud_credential = self.get_credential(config)

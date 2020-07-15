@@ -17,3 +17,8 @@ class TestCredentials(unittest.TestCase):
         self.assertEqual('654321', cred.get_access_key_secret())
         self.assertEqual(auth_constant.ACCESS_KEY, cred.get_type())
         self.assertIsNone(cred.get_security_token())
+        try:
+            cred = Client()
+            cred.get_access_key_id()
+        except Exception as e:
+            self.assertEqual(str(e), 'not found credentials')

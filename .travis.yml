@@ -1,0 +1,19 @@
+language: python
+python:
+  - "3.4"
+  - "3.5"
+  - "3.6"
+  - "3.7"
+  - "3.8"
+env:
+  - PYTHONPATH=$PYTHONPATH:$TRAVIS_BUILD_DIR
+# command to install dependencies
+install:
+  - pip install coverage
+  - pip install requests==2.21.0
+  - pip install alibabacloud-tea
+# command to run tests
+script:
+  - coverage run --source=alibabacloud_credentials -m pytest tests/test_*
+  - wget --no-check-certificate https://codecov.io/bash -O codecov.sh
+  - bash codecov.sh -cF "python"

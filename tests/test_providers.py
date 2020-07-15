@@ -135,7 +135,7 @@ class TestProviders(unittest.TestCase):
         auth_util.client_type = 'client7'
         self.assertIsNone(prov.get_credentials())
         prov = providers.ProfileCredentialsProvider()
-        self.assertRaises(exceptions.CredentialException, prov.get_credentials)
+        self.assertIsNone(prov.get_credentials())
 
     def test_EnvironmentVariableCredentialsProvider(self):
         prov = providers.EnvironmentVariableCredentialsProvider()
@@ -144,7 +144,7 @@ class TestProviders(unittest.TestCase):
 
         auth_util.client_type = 'default'
         auth_util.environment_access_key_id = 'accessKeyIdTest'
-        self.assertIsInstance(prov.get_credentials(), AccessKeyCredential)
+        self.assertIsNone(prov.get_credentials())
 
         auth_util.environment_access_key_secret = 'accessKeySecretTest'
         cred = prov.get_credentials()
