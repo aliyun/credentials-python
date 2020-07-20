@@ -15,6 +15,7 @@
  under the License.
 """
 
+import sys
 import os
 from setuptools import setup, find_packages
 
@@ -23,6 +24,15 @@ Setup module for tea credentials.
 Created on 3/24/2020
 @author: Alibaba Cloud
 """
+
+if sys.version_info.major == 3:
+    if sys.version_info.minor > 4:
+        install_requires = ['requests>=2.21.0, <3.0.0', 'alibabacloud-tea']
+    else:
+        install_requires = ['requests==2.21.0', 'alibabacloud-tea']
+else:
+    raise EnvironmentError('The library only supports python3')
+
 
 PACKAGE = "alibabacloud_credentials"
 DESCRIPTION = "The alibabacloud credentials module of alibabaCloud Python SDK."
@@ -47,7 +57,7 @@ setup_args = {
     'keywords': ["alibabacloud", "sdk", "tea"],
     'packages': find_packages(exclude=["tests*"]),
     'platforms': 'any',
-    'install_requires': ['requests==2.21.0', 'alibabacloud-tea>=0.0.3'],
+    'install_requires': install_requires,
     'classifiers': (
         'Development Status :: 5 - Production/Stable',
         'Intended Audience :: Developers',
