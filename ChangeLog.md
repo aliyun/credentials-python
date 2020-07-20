@@ -1,3 +1,7 @@
+### 2020-07-20 Version 0.0.5
+
+* Improve install requires library version.
+
 ### 2020-07-15 Version 0.0.4
 
 * Processed INI file comments

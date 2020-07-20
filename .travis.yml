@@ -10,7 +10,7 @@ env:
 # command to install dependencies
 install:
   - pip install coverage
-  - pip install requests==2.21.0
+  - pip install requests
   - pip install alibabacloud-tea
 # command to run tests
 script:
