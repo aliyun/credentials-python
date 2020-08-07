@@ -1,15 +1,43 @@
 import unittest
 import json
+import time
 import requests
 
 from alibabacloud_credentials.credentials import AccessKeyCredential
 from alibabacloud_credentials import providers, models, credentials, exceptions
 from alibabacloud_credentials.utils import auth_util
+from . import ini_file
 
-ini_file = 'tests/tests.ini'
+import threading
+from http.server import HTTPServer, BaseHTTPRequestHandler
+
+
+class Request(BaseHTTPRequestHandler):
+    def do_GET(self):
+        self.send_response(200)
+        self.send_header('Content-type', 'application/json')
+        self.end_headers()
+        self.wfile.write(b'{"Code": "Success", "AccessKeyId": "ak",'
+                         b' "Expiration": "3999-08-07T20:20:20Z", "Credentials":'
+                         b' {"Expiration": "3999-08-07T20:20:20Z"}, "SessionAccessKey":'
+                         b' {"Expiration": "3999-08-07T20:20:20Z"}}')
+
+
+def run_server():
+    server = HTTPServer(('localhost', 8888), Request)
+    server.serve_forever()
 
 
 class TestProviders(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls):
+        server = threading.Thread(target=run_server)
+        server.setDaemon(True)
+        server.start()
+
+    @staticmethod
+    def strftime(t):
+        return time.strftime('%Y-%m-%dT%H:%M:%SZ', time.localtime(t))
 
     def test_EcsRamRoleCredentialProvider(self):
         prov = providers.EcsRamRoleCredentialProvider("roleName")
@@ -25,7 +53,9 @@ class TestProviders(unittest.TestCase):
         self.assertEqual("roleNameConfig", prov.role_name)
         self.assertEqual(2300, prov.timeout)
         # prov._create_credential(url='http://www.aliyun.com')
-        self.assertRaises(json.decoder.JSONDecodeError, prov._create_credential, url='http://www.aliyun.com')
+        cred = prov._create_credential(url='http://127.0.0.1:8888')
+        self.assertEqual('ak', cred.access_key_id)
+        self.assertEqual('3999-08-07T20:20:20Z', self.strftime(cred.expiration))
 
         prov._get_role_name(url='http://www.aliyun.com')
         self.assertIsNotNone(prov.role_name)
@@ -92,7 +122,8 @@ class TestProviders(unittest.TestCase):
         self.assertEqual('cn-hangzhou', prov.region_id)
         self.assertIsNone(prov.policy)
 
-        self.assertRaises(json.decoder.JSONDecodeError, prov._create_credentials, turl='http://www.aliyun.com')
+        cred = prov._create_credentials(turl='http://127.0.0.1:8888')
+        self.assertEqual('3999-08-07T20:20:20Z', self.strftime(cred.expiration))
 
     def test_RsaKeyPairCredentialProvider(self):
         access_key_id, access_key_secret, region_id = \
@@ -113,7 +144,8 @@ class TestProviders(unittest.TestCase):
         self.assertEqual('access_key_secret', prov.access_key_secret)
         self.assertEqual('cn-hangzhou', prov.region_id)
 
-        self.assertRaises(json.decoder.JSONDecodeError, prov._create_credential,turl='http://www.aliyun.com')
+        cred = prov._create_credential(turl='http://127.0.0.1:8888')
+        self.assertEqual('3999-08-07T20:20:20Z', self.strftime(cred.expiration))
 
     def test_ProfileCredentialsProvider(self):
         prov = providers.ProfileCredentialsProvider(ini_file)

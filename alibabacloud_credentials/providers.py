@@ -110,11 +110,11 @@ class EcsRamRoleCredentialProvider(AlibabaCloudCredentialsProvider):
             raise CredentialException(self.__ecs_metadata_fetch_error_msg + " HttpCode=" + str(response.status_code))
         response.encoding = 'utf-8'
         dic = json.loads(response.text)
-        content_code = dic.Code
-        content_access_key_id = dic.AccessKeyId
-        content_access_key_secret = dic.AccessKeySecret
-        content_security_token = dic.SecurityToken
-        content_expiration = dic.Expiration
+        content_code = dic.get('Code')
+        content_access_key_id = dic.get('AccessKeyId')
+        content_access_key_secret = dic.get('AccessKeySecret')
+        content_security_token = dic.get('SecurityToken')
+        content_expiration = dic.get('Expiration')
 
         if content_code != "Success":
             raise CredentialException(self.__ecs_metadata_fetch_error_msg)

@@ -3,6 +3,28 @@ import time
 from alibabacloud_credentials.utils import auth_constant as ac
 
 
+class _AutomaticallyRefreshCredentials:
+    def __init__(self, expiration, provider, refresh_fields):
+        self.expiration = expiration
+        self.provider = provider
+        self._REFRESH_FIELDS = refresh_fields
+
+    def _with_should_refresh(self):
+        return int(time.mktime(time.localtime())) >= (object.__getattribute__(self, 'expiration') - 180)
+
+    def _get_new_credential(self):
+        return self.provider.get_credentials()
+
+    def _refresh_credential(self):
+        if self._with_should_refresh():
+            return self._get_new_credential()
+
+    def __getattribute__(self, item):
+        if item in object.__getattribute__(self, '__dict__')['_REFRESH_FIELDS']:
+            self._refresh_credential()
+        return object.__getattribute__(self, item)
+
+
 class AccessKeyCredential:
     """AccessKeyCredential"""
 
@@ -20,62 +42,74 @@ class BearerTokenCredential:
         self.credential_type = ac.BEARER
 
 
-class EcsRamRoleCredential:
+class EcsRamRoleCredential(_AutomaticallyRefreshCredentials):
     """EcsRamRoleCredential"""
 
     def __init__(self, access_key_id, access_key_secret, security_token, expiration, provider):
-        self.access_key_id = access_key_id
-        self.access_key_secret = access_key_secret
-        self.security_token = security_token
-        self.expiration = expiration
-        self.provider = provider
-        self.credential_type = ac.ECS_RAM_ROLE
-
-
-class RamRoleArnCredential:
-    """RamRoleArnCredential"""
-
-    def __init__(self, access_key_id, access_key_secret, security_token, expiration, provider):
-        self.access_key_id = access_key_id
-        self.access_key_secret = access_key_secret
-        self.security_token = security_token
-        self.expiration = expiration
-        self.provider = provider
-        self.credential_type = ac.RAM_ROLE_ARN
-        self._REFRESH_FIELDS = (
+        refresh_fields = (
             'access_key_id',
             'access_key_secret',
             'security_token',
             'expiration'
         )
-
-    def _with_should_refresh(self):
-        return int(time.mktime(time.localtime())) >= (object.__getattribute__(self, 'expiration') - 180)
-
-    def _get_new_credential(self):
-        return self.provider.get_credentials()
+        super().__init__(expiration, provider, refresh_fields)
+        self.access_key_id = access_key_id
+        self.access_key_secret = access_key_secret
+        self.security_token = security_token
+        self.credential_type = ac.ECS_RAM_ROLE
 
     def _refresh_credential(self):
-        if self._with_should_refresh():
-            credential = self._get_new_credential()
+        credential = super()._refresh_credential()
+        if credential:
             self.access_key_id = credential.access_key_id
             self.access_key_secret = credential.access_key_secret
             self.expiration = credential.expiration
             self.security_token = credential.security_token
 
-    def __getattribute__(self, item):
-        if item in object.__getattribute__(self, '__dict__')['_REFRESH_FIELDS']:
-            self._refresh_credential()
-        return object.__getattribute__(self, item)
 
+class RamRoleArnCredential(_AutomaticallyRefreshCredentials):
+    """RamRoleArnCredential"""
 
-class RsaKeyPairCredential:
-    def __init__(self, access_key_id, access_key_secret, expiration, provider):
+    def __init__(self, access_key_id, access_key_secret, security_token, expiration, provider):
+        refresh_fields = (
+            'access_key_id',
+            'access_key_secret',
+            'security_token',
+            'expiration'
+        )
+        super().__init__(expiration, provider, refresh_fields)
         self.access_key_id = access_key_id
         self.access_key_secret = access_key_secret
-        self.expiration = expiration
-        self.provider = provider
+        self.security_token = security_token
+        self.credential_type = ac.RAM_ROLE_ARN
+
+    def _refresh_credential(self):
+        credential = super()._refresh_credential()
+        if credential:
+            self.access_key_id = credential.access_key_id
+            self.access_key_secret = credential.access_key_secret
+            self.expiration = credential.expiration
+            self.security_token = credential.security_token
+
+
+class RsaKeyPairCredential(_AutomaticallyRefreshCredentials):
+    def __init__(self, access_key_id, access_key_secret, expiration, provider):
+        refresh_fields = (
+            'access_key_id',
+            'access_key_secret',
+            'expiration'
+        )
+        super().__init__(expiration, provider, refresh_fields)
+        self.access_key_id = access_key_id
+        self.access_key_secret = access_key_secret
         self.credential_type = ac.RSA_KEY_PAIR
+
+    def _refresh_credential(self):
+        credential = super()._refresh_credential()
+        if credential:
+            self.access_key_id = credential.access_key_id
+            self.access_key_secret = credential.access_key_secret
+            self.expiration = credential.expiration
 
 
 class StsCredential:
