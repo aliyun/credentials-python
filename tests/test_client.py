@@ -4,10 +4,11 @@ from alibabacloud_credentials.models import Config
 from alibabacloud_credentials.utils import auth_constant
 from alibabacloud_credentials.client import Client
 from alibabacloud_credentials import credentials
+from alibabacloud_credentials import providers
 
 
 class TestCredentials(unittest.TestCase):
-    def test_client(self):
+    def test_ak_client(self):
         conf = Config()
         conf.type = auth_constant.ACCESS_KEY
         conf.access_key_id = '123456'
@@ -22,3 +23,23 @@ class TestCredentials(unittest.TestCase):
             cred.get_access_key_id()
         except Exception as e:
             self.assertEqual(str(e), 'not found credentials')
+
+        conf = Config(type='sts')
+        cred = Client(conf)
+        self.assertIsInstance(cred.cloud_credential, credentials.StsCredential)
+
+        conf = Config(type='bearer')
+        cred = Client(conf)
+        self.assertIsInstance(cred.cloud_credential, credentials.BearerTokenCredential)
+
+        conf = Config(type='ecs_ram_role')
+        self.assertIsInstance(Client.get_provider(conf), providers.EcsRamRoleCredentialProvider)
+
+        conf = Config(type='ram_role_arn')
+        self.assertIsInstance(Client.get_provider(conf), providers.RamRoleArnCredentialProvider)
+
+        conf = Config(type='rsa_key_pair')
+        self.assertIsInstance(Client.get_provider(conf), providers.RsaKeyPairCredentialProvider)
+
+        conf = Config(type='test')
+        self.assertIsInstance(Client.get_provider(conf), providers.DefaultCredentialsProvider)

@@ -1,8 +1,7 @@
 from alibabacloud_credentials.utils import auth_util, parameter_helper
 
 import unittest
-
-txt_file = 'tests/private_key.txt'
+from . import txt_file
 
 
 class TestCredentials(unittest.TestCase):
