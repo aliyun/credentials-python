@@ -1,3 +1,6 @@
+### 2020-08-10 Version 0.0.6
+* EcsRamRole&RsaKeyPair support refresh token.
+
 ### 2020-07-20 Version 0.0.5
 
 * Improve install requires library version.
