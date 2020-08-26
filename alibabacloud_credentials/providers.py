@@ -2,6 +2,7 @@ import requests
 import json
 import time
 import configparser
+import calendar
 
 from alibabacloud_credentials.utils import auth_util as au, \
     auth_constant as ac, \
@@ -123,7 +124,7 @@ class EcsRamRoleCredentialProvider(AlibabaCloudCredentialsProvider):
         # 先转换为时间数组
         time_array = time.strptime(expiration_str, "%Y-%m-%d %H:%M:%S")
         # 转换为时间戳
-        time_stamp = int(time.mktime(time_array))
+        time_stamp = calendar.timegm(time_array)
         return credentials.EcsRamRoleCredential(content_access_key_id, content_access_key_secret,
                                                 content_security_token, time_stamp, self)
 
@@ -184,7 +185,7 @@ class RamRoleArnCredentialProvider(AlibabaCloudCredentialsProvider):
             # 先转换为时间数组
             time_array = time.strptime(expiration_str, "%Y-%m-%d %H:%M:%S")
             # 转换为时间戳
-            expiration = int(time.mktime(time_array))
+            expiration = calendar.timegm(time_array)
             return credentials.RamRoleArnCredential(cre.get("AccessKeyId"), cre.get("AccessKeySecret"),
                                                     cre.get("SecurityToken"), expiration, self)
         raise CredentialException(response.text)
@@ -225,7 +226,7 @@ class RsaKeyPairCredentialProvider(AlibabaCloudCredentialsProvider):
             cre = dic.get("SessionAccessKey")
             expiration_str = cre.get("Expiration").replace("T", " ").replace("Z", "")
             time_array = time.strptime(expiration_str, "%Y-%m-%d %H:%M:%S")
-            expiration = int(time.mktime(time_array))
+            expiration = calendar.timegm(time_array)
             return credentials.RsaKeyPairCredential(cre.get("SessionAccessKeyId"), cre.get("SessionAccessKeySecret"),
                                                     expiration, self)
         raise CredentialException(resp.text)

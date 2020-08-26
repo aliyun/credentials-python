@@ -47,15 +47,15 @@ class Client:
 
     @attribute_error_return_none
     def get_access_key_id(self):
-        return self.cloud_credential.access_key_id
+        return self.cloud_credential.get_access_key_id()
 
     @attribute_error_return_none
     def get_access_key_secret(self):
-        return self.cloud_credential.access_key_secret
+        return self.cloud_credential.get_access_key_secret()
 
     @attribute_error_return_none
     def get_security_token(self):
-        return self.cloud_credential.security_token
+        return self.cloud_credential.get_security_token()
 
     @attribute_error_return_none
     def get_type(self):

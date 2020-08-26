@@ -33,9 +33,9 @@ class TestCredentials(unittest.TestCase):
             provider
         )
 
-        self.assertEqual('access_key_id', cred.access_key_id)
-        self.assertEqual('access_key_secret', cred.access_key_secret)
-        self.assertEqual('security_token', cred.security_token)
+        self.assertEqual('access_key_id', cred.get_access_key_id())
+        self.assertEqual('access_key_secret', cred.get_access_key_secret())
+        self.assertEqual('security_token', cred.get_security_token())
         self.assertEqual(900000000000, cred.expiration)
         self.assertIsInstance(cred.provider, providers.EcsRamRoleCredentialProvider)
         self.assertEqual('ecs_ram_role', cred.credential_type)
@@ -48,7 +48,7 @@ class TestCredentials(unittest.TestCase):
             self.TestEcsRamRoleProvider()
         )
         # refresh token
-        self.assertEqual('accessKeyId', cred.access_key_id)
+        self.assertEqual('accessKeyId', cred.get_access_key_id())
         self.assertEqual('accessKeySecret', cred.access_key_secret)
         self.assertEqual('securityToken', cred.security_token)
         self.assertEqual(100000000000, cred.expiration)
@@ -93,7 +93,7 @@ class TestCredentials(unittest.TestCase):
         # refresh token
         self.assertTrue(cred._with_should_refresh())
 
-        self.assertEqual('accessKeyId', cred.access_key_id)
+        self.assertEqual('accessKeyId', cred.get_access_key_id())
         self.assertEqual('accessKeySecret', cred.access_key_secret)
         self.assertEqual('securityToken', cred.security_token)
         self.assertEqual(100000000000, cred.expiration)
@@ -128,7 +128,7 @@ class TestCredentials(unittest.TestCase):
         )
 
         # refresh token
-        self.assertEqual('accessKeyId', cred.access_key_id)
+        self.assertEqual('accessKeyId', cred.get_access_key_id())
         self.assertEqual('accessKeySecret', cred.access_key_secret)
         self.assertEqual(100000000000, cred.expiration)
 

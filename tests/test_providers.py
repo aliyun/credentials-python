@@ -19,8 +19,8 @@ class Request(BaseHTTPRequestHandler):
         self.end_headers()
         self.wfile.write(b'{"Code": "Success", "AccessKeyId": "ak",'
                          b' "Expiration": "3999-08-07T20:20:20Z", "Credentials":'
-                         b' {"Expiration": "3999-08-07T20:20:20Z"}, "SessionAccessKey":'
-                         b' {"Expiration": "3999-08-07T20:20:20Z"}}')
+                         b' {"Expiration": "3999-08-07T20:20:20Z", "AccessKeyId": "AccessKeyId"}, "SessionAccessKey":'
+                         b' {"Expiration": "3999-08-07T20:20:20Z", "SessionAccessKeyId": "SessionAccessKeyId"}}')
 
 
 def run_server():
@@ -55,9 +55,8 @@ class TestProviders(unittest.TestCase):
         # prov._create_credential(url='http://www.aliyun.com')
         cred = prov._create_credential(url='http://127.0.0.1:8888')
         self.assertEqual('ak', cred.access_key_id)
-        self.assertEqual('3999-08-07T20:20:20Z', self.strftime(cred.expiration))
 
-        prov._get_role_name(url='http://www.aliyun.com')
+        prov._get_role_name(url='http://127.0.0.1:8888')
         self.assertIsNotNone(prov.role_name)
         prov.role_name = 'role_name'
         prov._set_credential_url()
@@ -123,7 +122,7 @@ class TestProviders(unittest.TestCase):
         self.assertIsNone(prov.policy)
 
         cred = prov._create_credentials(turl='http://127.0.0.1:8888')
-        self.assertEqual('3999-08-07T20:20:20Z', self.strftime(cred.expiration))
+        self.assertEqual('AccessKeyId', cred.access_key_id)
 
     def test_RsaKeyPairCredentialProvider(self):
         access_key_id, access_key_secret, region_id = \
@@ -145,7 +144,7 @@ class TestProviders(unittest.TestCase):
         self.assertEqual('cn-hangzhou', prov.region_id)
 
         cred = prov._create_credential(turl='http://127.0.0.1:8888')
-        self.assertEqual('3999-08-07T20:20:20Z', self.strftime(cred.expiration))
+        self.assertEqual('SessionAccessKeyId', cred.access_key_id)
 
     def test_ProfileCredentialsProvider(self):
         prov = providers.ProfileCredentialsProvider(ini_file)
