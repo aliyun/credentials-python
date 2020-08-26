@@ -1,3 +1,6 @@
+### 2020-08-26 Version 0.0.7
+* Improve the logic of automatic refresh token.
+
 ### 2020-08-10 Version 0.0.6
 * EcsRamRole&RsaKeyPair support refresh token.
 
