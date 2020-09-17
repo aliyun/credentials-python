@@ -52,7 +52,6 @@ class TestProviders(unittest.TestCase):
         self.assertIsNotNone(prov)
         self.assertEqual("roleNameConfig", prov.role_name)
         self.assertEqual(2300, prov.timeout)
-        # prov._create_credential(url='http://www.aliyun.com')
         cred = prov._create_credential(url='http://127.0.0.1:8888')
         self.assertEqual('ak', cred.access_key_id)
 

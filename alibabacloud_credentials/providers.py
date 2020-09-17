@@ -4,6 +4,9 @@ import time
 import configparser
 import calendar
 
+from Tea.core import TeaCore
+from Tea.request import TeaRequest
+
 from alibabacloud_credentials.utils import auth_util as au, \
     auth_constant as ac, \
     parameter_helper as ph
@@ -50,7 +53,7 @@ class AlibabaCloudCredentialsProvider:
             )
 
     def get_credentials(self):
-        raise CredentialException('get_credentials() must be overridden')
+        raise NotImplementedError('get_credentials() must be overridden')
 
 
 class DefaultCredentialsProvider(AlibabaCloudCredentialsProvider):
@@ -105,12 +108,15 @@ class EcsRamRoleCredentialProvider(AlibabaCloudCredentialsProvider):
         self.role_name = response.text
 
     def _create_credential(self, url=None):
-        url = url if url else self.credential_url
-        response = requests.get(url, timeout=self.timeout / 1000)
+        tea_request = TeaRequest()
+        tea_request.headers['host'] = url if url else self.credential_url
+        # request
+        response = TeaCore.do_action(tea_request)
+
         if response.status_code != 200:
             raise CredentialException(self.__ecs_metadata_fetch_error_msg + " HttpCode=" + str(response.status_code))
-        response.encoding = 'utf-8'
-        dic = json.loads(response.text)
+
+        dic = json.loads(response.body.decode('utf-8'))
         content_code = dic.get('Code')
         content_access_key_id = dic.get('AccessKeyId')
         content_access_key_secret = dic.get('AccessKeySecret')
@@ -120,9 +126,8 @@ class EcsRamRoleCredentialProvider(AlibabaCloudCredentialsProvider):
         if content_code != "Success":
             raise CredentialException(self.__ecs_metadata_fetch_error_msg)
 
-        expiration_str = content_expiration.replace('T', ' ').replace('Z', '')
         # 先转换为时间数组
-        time_array = time.strptime(expiration_str, "%Y-%m-%d %H:%M:%S")
+        time_array = time.strptime(content_expiration, "%Y-%m-%dT%H:%M:%SZ")
         # 转换为时间戳
         time_stamp = calendar.timegm(time_array)
         return credentials.EcsRamRoleCredential(content_access_key_id, content_access_key_secret,
@@ -158,7 +163,8 @@ class RamRoleArnCredentialProvider(AlibabaCloudCredentialsProvider):
 
     def _create_credentials(self, turl=None):
         # 获取credential 先实现签名用工具类
-        queries = {
+        tea_request = TeaRequest()
+        tea_request.query = {
             'Action': 'AssumeRole',
             'Format': 'JSON',
             'Version': '2015-04-01',
@@ -169,26 +175,24 @@ class RamRoleArnCredentialProvider(AlibabaCloudCredentialsProvider):
             'RoleSessionName': self.role_session_name
         }
         if self.policy is not None:
-            queries["Policy"] = self.policy
-        string_to_sign = ph.compose_string_to_sign("GET", queries)
+            tea_request.query["Policy"] = self.policy
+        string_to_sign = ph.compose_string_to_sign("GET", tea_request.query)
         signature = ph.sign_string(string_to_sign, self.access_key_secret + "&")
-        queries["Signature"] = signature
-        url = ph.compose_url("sts.aliyuncs.com", queries, "https")
-        url = turl if turl else url
+        tea_request.query["Signature"] = signature
+        tea_request.headers['host'] = turl if turl else 'https://sts.aliyuncs.com'
         # request
-        response = requests.get(url, timeout=self.timeout / 1000)
-        response.encoding = 'utf-8'
-        dic = json.loads(response.text)
-        if "Credentials" in dic:
-            cre = dic.get("Credentials")
-            expiration_str = cre.get("Expiration").replace("T", " ").replace("Z", "")
-            # 先转换为时间数组
-            time_array = time.strptime(expiration_str, "%Y-%m-%d %H:%M:%S")
-            # 转换为时间戳
-            expiration = calendar.timegm(time_array)
-            return credentials.RamRoleArnCredential(cre.get("AccessKeyId"), cre.get("AccessKeySecret"),
-                                                    cre.get("SecurityToken"), expiration, self)
-        raise CredentialException(response.text)
+        response = TeaCore.do_action(tea_request)
+        if response.status_code == 200:
+            dic = json.loads(response.body.decode('utf-8'))
+            if "Credentials" in dic:
+                cre = dic.get("Credentials")
+                # 先转换为时间数组
+                time_array = time.strptime(cre.get("Expiration"), "%Y-%m-%dT%H:%M:%SZ")
+                # 转换为时间戳
+                expiration = calendar.timegm(time_array)
+                return credentials.RamRoleArnCredential(cre.get("AccessKeyId"), cre.get("AccessKeySecret"),
+                                                        cre.get("SecurityToken"), expiration, self)
+        raise CredentialException(response.body.decode('utf-8'))
 
 
 class RsaKeyPairCredentialProvider(AlibabaCloudCredentialsProvider):
@@ -204,7 +208,8 @@ class RsaKeyPairCredentialProvider(AlibabaCloudCredentialsProvider):
         return self._create_credential()
 
     def _create_credential(self, turl=None):
-        queries = {
+        tea_request = TeaRequest()
+        tea_request.query = {
             'Action': 'GenerateSessionAccessKey',
             'Format': 'JSON',
             'Version': '2015-04-01',
@@ -213,23 +218,21 @@ class RsaKeyPairCredentialProvider(AlibabaCloudCredentialsProvider):
             'RegionId': self.region_id,
         }
 
-        str_to_sign = ph.compose_string_to_sign('GET', queries)
+        str_to_sign = ph.compose_string_to_sign('GET', tea_request.query)
         signature = ph.sign_string(str_to_sign, self.access_key_id + '&')
-        queries['Signature'] = signature
-        url = ph.compose_url("sts.aliyuncs.com", queries, "https")
+        tea_request.query['Signature'] = signature
+        tea_request.headers['host'] = turl if turl else 'https://sts.aliyuncs.com'
         # request
-        url = turl if turl else url
-        resp = requests.get(url, timeout=self.timeout / 1000)
-        resp.encoding = 'utf-8'
-        dic = json.loads(resp.text)
-        if "SessionAccessKey" in dic:
-            cre = dic.get("SessionAccessKey")
-            expiration_str = cre.get("Expiration").replace("T", " ").replace("Z", "")
-            time_array = time.strptime(expiration_str, "%Y-%m-%d %H:%M:%S")
-            expiration = calendar.timegm(time_array)
-            return credentials.RsaKeyPairCredential(cre.get("SessionAccessKeyId"), cre.get("SessionAccessKeySecret"),
-                                                    expiration, self)
-        raise CredentialException(resp.text)
+        response = TeaCore.do_action(tea_request)
+        if response.status_code == 200:
+            dic = json.loads(response.body.decode('utf-8'))
+            if "SessionAccessKey" in dic:
+                cre = dic.get("SessionAccessKey")
+                time_array = time.strptime(cre.get("Expiration"), "%Y-%m-%dT%H:%M:%SZ")
+                expiration = calendar.timegm(time_array)
+                return credentials.RsaKeyPairCredential(cre.get("SessionAccessKeyId"), cre.get("SessionAccessKeySecret"),
+                                                        expiration, self)
+        raise CredentialException(response.body.decode('utf-8'))
 
 
 class ProfileCredentialsProvider(AlibabaCloudCredentialsProvider):
