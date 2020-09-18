@@ -1,3 +1,6 @@
+### 2020-09-18 Version 0.0.8
+* Print debugging information in debug mode when configuring DEBUG environment variables.
+
 ### 2020-08-26 Version 0.0.7
 * Improve the logic of automatic refresh token.
 
