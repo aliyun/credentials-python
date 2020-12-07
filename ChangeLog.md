@@ -1,3 +1,9 @@
+### 2020-12-07 Version 0.1.0
+* Drop support for python3.4.
+* Drop support for python3.5.
+* Added support for python3.9.
+* Support async io client.
+
 ### 2020-09-18 Version 0.0.8
 * Print debugging information in debug mode when configuring DEBUG environment variables.
 
