@@ -1,3 +1,6 @@
+### 2020-12-09 Version 0.1.1
+* Change overwrite to a method with `_async` suffix
+
 ### 2020-12-07 Version 0.1.0
 * Drop support for python3.4.
 * Drop support for python3.5.
