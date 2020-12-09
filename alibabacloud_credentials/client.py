@@ -65,16 +65,14 @@ class Client:
     def get_bearer_token(self):
         return self.cloud_credential.bearer_token
 
-
-class AioClient(Client):
     @attribute_error_return_none
-    async def get_access_key_id(self):
+    async def get_access_key_id_async(self):
         return self.cloud_credential.get_access_key_id()
 
     @attribute_error_return_none
-    async def get_access_key_secret(self):
+    async def get_access_key_secret_async(self):
         return self.cloud_credential.get_access_key_secret()
 
     @attribute_error_return_none
-    async def get_security_token(self):
+    async def get_security_token_async(self):
         return self.cloud_credential.get_security_token()
