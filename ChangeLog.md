@@ -1,3 +1,6 @@
+### 2020-12-11 Version 0.1.2
+* Fix AttributeError.
+
 ### 2020-12-09 Version 0.1.1
 * Change overwrite to a method with `_async` suffix
 
