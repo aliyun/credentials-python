@@ -1,3 +1,4 @@
+import asyncio
 import unittest
 
 from alibabacloud_credentials.models import Config
@@ -43,3 +44,20 @@ class TestCredentials(unittest.TestCase):
 
         conf = Config(type='test')
         self.assertIsInstance(Client.get_provider(conf), providers.DefaultCredentialsProvider)
+
+        conf = Config(
+            access_key_id='ak1',
+            access_key_secret='sk1',
+            type='access_key'
+        )
+        client = Client(conf)
+        loop = asyncio.get_event_loop()
+        task = asyncio.ensure_future(client.get_security_token_async())
+        loop.run_until_complete(task)
+        self.assertIsNone(task.result())
+        task = asyncio.ensure_future(client.get_access_key_id_async())
+        loop.run_until_complete(task)
+        self.assertEqual('ak1', task.result())
+        task = asyncio.ensure_future(client.get_access_key_secret_async())
+        loop.run_until_complete(task)
+        self.assertEqual('sk1', task.result())
