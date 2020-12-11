@@ -65,14 +65,20 @@ class Client:
     def get_bearer_token(self):
         return self.cloud_credential.bearer_token
 
-    @attribute_error_return_none
     async def get_access_key_id_async(self):
-        return self.cloud_credential.get_access_key_id()
+        if hasattr(self.cloud_credential, 'get_access_key_id'):
+            return self.cloud_credential.get_access_key_id()
+        else:
+            return
 
-    @attribute_error_return_none
     async def get_access_key_secret_async(self):
-        return self.cloud_credential.get_access_key_secret()
+        if hasattr(self.cloud_credential, 'get_access_key_secret'):
+            return self.cloud_credential.get_access_key_secret()
+        else:
+            return
 
-    @attribute_error_return_none
     async def get_security_token_async(self):
-        return self.cloud_credential.get_security_token()
+        if hasattr(self.cloud_credential, 'get_security_token'):
+            return self.cloud_credential.get_security_token()
+        else:
+            return
