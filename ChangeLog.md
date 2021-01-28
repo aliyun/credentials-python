@@ -1,3 +1,6 @@
+### 2020-01-28 Version 0.1.3
+* Support async refresh credentials.
+
 ### 2020-12-11 Version 0.1.2
 * Fix AttributeError.
 
