@@ -49,8 +49,8 @@ class TestCredentials(unittest.TestCase):
         )
         # refresh token
         self.assertEqual('accessKeyId', cred.get_access_key_id())
-        self.assertEqual('accessKeySecret', cred.access_key_secret)
-        self.assertEqual('securityToken', cred.security_token)
+        self.assertEqual('accessKeySecret', cred.get_access_key_secret())
+        self.assertEqual('securityToken', cred.get_security_token())
         self.assertEqual(100000000000, cred.expiration)
 
     def test_AccessKeyCredential(self):

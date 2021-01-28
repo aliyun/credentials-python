@@ -97,19 +97,30 @@ class EcsRamRoleCredentialProvider(AlibabaCloudCredentialsProvider):
         self.__ecs_metadata_fetch_error_msg = "Failed to get RAM session credentials from ECS metadata service."
         self.__metadata_service_host = "100.100.100.200"
         self._set_arg('role_name', role_name)
-        self._set_credential_url()
 
     def _get_role_name(self, url=None):
-        url = url if url else self.credential_url
+        url = url if url else f'http://{self.__metadata_service_host}{self.__url_in_ecs_metadata}'
         response = requests.get(url, timeout=self.timeout / 1000)
         if response.status_code != 200:
             raise CredentialException(self.__ecs_metadata_fetch_error_msg + " HttpCode=" + str(response.status_code))
         response.encoding = 'utf-8'
         self.role_name = response.text
 
+    async def _get_role_name_async(self, url=None):
+        tea_request = TeaRequest()
+        tea_request.headers['host'] = url if url else self.__metadata_service_host
+        if not url:
+            tea_request.pathname = self.__url_in_ecs_metadata
+        response = await TeaCore.async_do_action(tea_request)
+        if response.status_code != 200:
+            raise CredentialException(self.__ecs_metadata_fetch_error_msg + " HttpCode=" + str(response.status_code))
+        self.role_name = response.body.decode('utf-8')
+
     def _create_credential(self, url=None):
         tea_request = TeaRequest()
-        tea_request.headers['host'] = url if url else self.credential_url
+        tea_request.headers['host'] = url if url else self.__metadata_service_host
+        if not url:
+            tea_request.pathname = self.__url_in_ecs_metadata + self.role_name
         # request
         response = TeaCore.do_action(tea_request)
 
@@ -136,11 +147,41 @@ class EcsRamRoleCredentialProvider(AlibabaCloudCredentialsProvider):
     def get_credentials(self):
         if self.role_name == "":
             self._get_role_name()
-            self._set_credential_url()
         return self._create_credential()
 
-    def _set_credential_url(self):
-        self.credential_url = "http://" + self.__metadata_service_host + self.__url_in_ecs_metadata + self.role_name
+    async def _create_credential_async(self, url=None):
+        tea_request = TeaRequest()
+        tea_request.headers['host'] = url if url else self.__metadata_service_host
+        if not url:
+            tea_request.pathname = self.__url_in_ecs_metadata + self.role_name
+
+        # request
+        response = await TeaCore.async_do_action(tea_request)
+
+        if response.status_code != 200:
+            raise CredentialException(self.__ecs_metadata_fetch_error_msg + " HttpCode=" + str(response.status_code))
+
+        dic = json.loads(response.body.decode('utf-8'))
+        content_code = dic.get('Code')
+        content_access_key_id = dic.get('AccessKeyId')
+        content_access_key_secret = dic.get('AccessKeySecret')
+        content_security_token = dic.get('SecurityToken')
+        content_expiration = dic.get('Expiration')
+
+        if content_code != "Success":
+            raise CredentialException(self.__ecs_metadata_fetch_error_msg)
+
+        # 先转换为时间数组
+        time_array = time.strptime(content_expiration, "%Y-%m-%dT%H:%M:%SZ")
+        # 转换为时间戳
+        time_stamp = calendar.timegm(time_array)
+        return credentials.EcsRamRoleCredential(content_access_key_id, content_access_key_secret,
+                                                content_security_token, time_stamp, self)
+
+    async def get_credentials_async(self):
+        if self.role_name == "":
+            await self._get_role_name_async()
+        return await self._create_credential_async()
 
 
 class RamRoleArnCredentialProvider(AlibabaCloudCredentialsProvider):
@@ -179,9 +220,47 @@ class RamRoleArnCredentialProvider(AlibabaCloudCredentialsProvider):
         string_to_sign = ph.compose_string_to_sign("GET", tea_request.query)
         signature = ph.sign_string(string_to_sign, self.access_key_secret + "&")
         tea_request.query["Signature"] = signature
-        tea_request.headers['host'] = turl if turl else 'https://sts.aliyuncs.com'
+        tea_request.protocol = 'https'
+        tea_request.headers['host'] = turl if turl else 'sts.aliyuncs.com'
         # request
         response = TeaCore.do_action(tea_request)
+        if response.status_code == 200:
+            dic = json.loads(response.body.decode('utf-8'))
+            if "Credentials" in dic:
+                cre = dic.get("Credentials")
+                # 先转换为时间数组
+                time_array = time.strptime(cre.get("Expiration"), "%Y-%m-%dT%H:%M:%SZ")
+                # 转换为时间戳
+                expiration = calendar.timegm(time_array)
+                return credentials.RamRoleArnCredential(cre.get("AccessKeyId"), cre.get("AccessKeySecret"),
+                                                        cre.get("SecurityToken"), expiration, self)
+        raise CredentialException(response.body.decode('utf-8'))
+
+    async def get_credentials_async(self):
+        return await self._create_credentials_async()
+
+    async def _create_credentials_async(self, turl=None):
+        # 获取credential 先实现签名用工具类
+        tea_request = TeaRequest()
+        tea_request.query = {
+            'Action': 'AssumeRole',
+            'Format': 'JSON',
+            'Version': '2015-04-01',
+            'DurationSeconds': str(self.duration_seconds),
+            'RoleArn': self.role_arn,
+            'AccessKeyId': self.access_key_id,
+            'RegionId': self.region_id,
+            'RoleSessionName': self.role_session_name
+        }
+        if self.policy is not None:
+            tea_request.query["Policy"] = self.policy
+        string_to_sign = ph.compose_string_to_sign("GET", tea_request.query)
+        signature = ph.sign_string(string_to_sign, self.access_key_secret + "&")
+        tea_request.query["Signature"] = signature
+        tea_request.protocol = 'https'
+        tea_request.headers['host'] = turl if turl else 'sts.aliyuncs.com'
+        # request
+        response = await TeaCore.async_do_action(tea_request)
         if response.status_code == 200:
             dic = json.loads(response.body.decode('utf-8'))
             if "Credentials" in dic:
@@ -204,6 +283,37 @@ class RsaKeyPairCredentialProvider(AlibabaCloudCredentialsProvider):
         self._set_arg('access_key_secret', access_key_secret)
         self._set_arg('region_id', region_id)
 
+    async def get_credentials_async(self):
+        return await self._create_credential_async()
+
+    async def _create_credential_async(self, turl=None):
+        tea_request = TeaRequest()
+        tea_request.query = {
+            'Action': 'GenerateSessionAccessKey',
+            'Format': 'JSON',
+            'Version': '2015-04-01',
+            'DurationSeconds': str(self.duration_seconds),
+            'AccessKeyId': self.access_key_id,
+            'RegionId': self.region_id,
+        }
+
+        str_to_sign = ph.compose_string_to_sign('GET', tea_request.query)
+        signature = ph.sign_string(str_to_sign, self.access_key_id + '&')
+        tea_request.query['Signature'] = signature
+        tea_request.protocol = 'https'
+        tea_request.headers['host'] = turl if turl else 'sts.aliyuncs.com'
+        # request
+        response = await TeaCore.async_do_action(tea_request)
+        if response.status_code == 200:
+            dic = json.loads(response.body.decode('utf-8'))
+            if "SessionAccessKey" in dic:
+                cre = dic.get("SessionAccessKey")
+                time_array = time.strptime(cre.get("Expiration"), "%Y-%m-%dT%H:%M:%SZ")
+                expiration = calendar.timegm(time_array)
+                return credentials.RsaKeyPairCredential(cre.get("SessionAccessKeyId"), cre.get("SessionAccessKeySecret"),
+                                                        expiration, self)
+        raise CredentialException(response.body.decode('utf-8'))
+
     def get_credentials(self):
         return self._create_credential()
 
@@ -221,7 +331,8 @@ class RsaKeyPairCredentialProvider(AlibabaCloudCredentialsProvider):
         str_to_sign = ph.compose_string_to_sign('GET', tea_request.query)
         signature = ph.sign_string(str_to_sign, self.access_key_id + '&')
         tea_request.query['Signature'] = signature
-        tea_request.headers['host'] = turl if turl else 'https://sts.aliyuncs.com'
+        tea_request.protocol = 'https'
+        tea_request.headers['host'] = turl if turl else 'sts.aliyuncs.com'
         # request
         response = TeaCore.do_action(tea_request)
         if response.status_code == 200:
@@ -240,7 +351,7 @@ class ProfileCredentialsProvider(AlibabaCloudCredentialsProvider):
         super().__init__()
         self._set_arg('file_path', path)
 
-    def get_credentials(self):
+    def parse_ini(self):
         file_path = self.file_path if self.file_path else au.environment_credentials_file
         if file_path is None:
             file_path = ac.DEFAULT_CREDENTIALS_FILE_PATH
@@ -260,6 +371,10 @@ class ProfileCredentialsProvider(AlibabaCloudCredentialsProvider):
                     option[key] = value.strip()
             ini_map[k] = option
         client_config = ini_map.get(au.client_type)
+        return client_config
+
+    def get_credentials(self):
+        client_config = self.parse_ini()
         if client_config is None:
             return
         return self._create_credential(client_config)
@@ -269,11 +384,11 @@ class ProfileCredentialsProvider(AlibabaCloudCredentialsProvider):
         if not config_type:
             raise CredentialException("The configured client type is empty")
         elif ac.INI_TYPE_ARN == config_type:
-            return self._get_sts_assume_role_session_credentials(config)
+            return self._get_sts_assume_role_session_provider(config).get_credentials()
         elif ac.INI_TYPE_KEY_PAIR == config_type:
-            return self._get_sts_get_session_access_key_credentials(config)
+            return self._get_sts_get_session_access_key_provider(config).get_credentials()
         elif ac.INI_TYPE_RAM == config_type:
-            return self._get_instance_profile_credentials(config)
+            return self._get_instance_profile_provider(config).get_credentials()
 
         access_key_id = config.get(ac.INI_ACCESS_KEY_ID)
         access_key_secret = config.get(ac.INI_ACCESS_KEY_IDSECRET)
@@ -282,7 +397,7 @@ class ProfileCredentialsProvider(AlibabaCloudCredentialsProvider):
         return credentials.AccessKeyCredential(access_key_id, access_key_secret)
 
     @staticmethod
-    def _get_sts_assume_role_session_credentials(config):
+    def _get_sts_assume_role_session_provider(config):
         access_key_id = config.get(ac.INI_ACCESS_KEY_ID)
         access_key_secret = config.get(ac.INI_ACCESS_KEY_IDSECRET)
         role_session_name = config.get(ac.INI_ROLE_SESSION_NAME)
@@ -294,13 +409,12 @@ class ProfileCredentialsProvider(AlibabaCloudCredentialsProvider):
             raise CredentialException("The configured access_key_id or access_key_secret is empty")
         if not role_session_name or not role_arn:
             raise CredentialException("The configured role_session_name or role_arn is empty")
-        provider = RamRoleArnCredentialProvider(
+        return RamRoleArnCredentialProvider(
             access_key_id, access_key_secret, role_session_name, role_arn, region_id, policy
         )
-        return provider.get_credentials()
 
     @staticmethod
-    def _get_sts_get_session_access_key_credentials(config):
+    def _get_sts_get_session_access_key_provider(config):
         public_key_id = config.get(ac.INI_PUBLIC_KEY_ID)
         private_key_file = config.get(ac.INI_PRIVATE_KEY_FILE)
         if not private_key_file:
@@ -309,16 +423,14 @@ class ProfileCredentialsProvider(AlibabaCloudCredentialsProvider):
         if not public_key_id or not private_key:
             raise CredentialException("The configured public_key_id or private_key_file content is empty")
 
-        provider = RsaKeyPairCredentialProvider(public_key_id, private_key)
-        return provider.get_credentials()
+        return RsaKeyPairCredentialProvider(public_key_id, private_key)
 
     @staticmethod
-    def _get_instance_profile_credentials(config):
+    def _get_instance_profile_provider(config):
         role_name = config.get(ac.INI_ROLE_NAME)
         if not role_name:
             raise CredentialException("The configured role_name is empty")
-        provider = EcsRamRoleCredentialProvider(role_name)
-        return provider.get_credentials()
+        return EcsRamRoleCredentialProvider(role_name)
 
 
 class EnvironmentVariableCredentialsProvider(AlibabaCloudCredentialsProvider):

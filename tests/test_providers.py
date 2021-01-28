@@ -2,6 +2,7 @@ import unittest
 import json
 import time
 import requests
+import asyncio
 
 from alibabacloud_credentials.credentials import AccessKeyCredential
 from alibabacloud_credentials import providers, models, credentials, exceptions
@@ -10,6 +11,8 @@ from . import ini_file
 
 import threading
 from http.server import HTTPServer, BaseHTTPRequestHandler
+
+loop = asyncio.get_event_loop()
 
 
 class Request(BaseHTTPRequestHandler):
@@ -52,14 +55,33 @@ class TestProviders(unittest.TestCase):
         self.assertIsNotNone(prov)
         self.assertEqual("roleNameConfig", prov.role_name)
         self.assertEqual(2300, prov.timeout)
-        cred = prov._create_credential(url='http://127.0.0.1:8888')
+        cred = prov._create_credential(url='127.0.0.1:8888')
         self.assertEqual('ak', cred.access_key_id)
 
         prov._get_role_name(url='http://127.0.0.1:8888')
         self.assertIsNotNone(prov.role_name)
-        prov.role_name = 'role_name'
-        prov._set_credential_url()
-        self.assertEqual('http://100.100.100.200/latest/meta-data/ram/security-credentials/role_name', prov.credential_url)
+
+    def test_EcsRamRoleCredentialProvider_async(self):
+        async def main():
+            prov = providers.EcsRamRoleCredentialProvider("roleName")
+            self.assertIsNotNone(prov)
+            self.assertEqual("roleName", prov.role_name)
+
+            cfg = models.Config()
+            cfg.role_name = "roleNameConfig"
+            cfg.timeout = 1100
+            cfg.connect_timeout = 1200
+            prov = providers.EcsRamRoleCredentialProvider(config=cfg)
+            self.assertIsNotNone(prov)
+            self.assertEqual("roleNameConfig", prov.role_name)
+            self.assertEqual(2300, prov.timeout)
+            cred = await prov._create_credential_async(url='127.0.0.1:8888')
+            self.assertEqual('ak', cred.access_key_id)
+
+            await prov._get_role_name_async(url='127.0.0.1:8888')
+            self.assertIsNotNone(prov.role_name)
+
+        loop.run_until_complete(main())
 
     def test_DefaultCredentialsProvider(self):
         prov = providers.DefaultCredentialsProvider()
@@ -123,6 +145,38 @@ class TestProviders(unittest.TestCase):
         cred = prov._create_credentials(turl='http://127.0.0.1:8888')
         self.assertEqual('AccessKeyId', cred.access_key_id)
 
+    def test_RamRoleArnCredentialProvider_async(self):
+        async def main():
+            access_key_id, access_key_secret, role_session_name, role_arn, region_id, policy = \
+                'access_key_id', 'access_key_secret', 'role_session_name', 'role_arn', 'region_id', 'policy'
+            prov = providers.RamRoleArnCredentialProvider(
+                access_key_id, access_key_secret, role_session_name, role_arn, region_id, policy
+            )
+            self.assertEqual('access_key_id', prov.access_key_id)
+            self.assertEqual('access_key_secret', prov.access_key_secret)
+            self.assertEqual('role_session_name', prov.role_session_name)
+            self.assertEqual('role_arn', prov.role_arn)
+            self.assertEqual('region_id', prov.region_id)
+            self.assertEqual('policy', prov.policy)
+
+            conf = models.Config(
+                access_key_id=access_key_id,
+                access_key_secret=access_key_secret,
+                role_session_name=role_session_name,
+                role_arn=role_arn
+            )
+            prov = providers.RamRoleArnCredentialProvider(config=conf)
+            self.assertEqual('access_key_id', prov.access_key_id)
+            self.assertEqual('access_key_secret', prov.access_key_secret)
+            self.assertEqual('role_session_name', prov.role_session_name)
+            self.assertEqual('role_arn', prov.role_arn)
+            self.assertEqual('cn-hangzhou', prov.region_id)
+            self.assertIsNone(prov.policy)
+
+            cred = await prov._create_credentials_async(turl='http://127.0.0.1:8888')
+            self.assertEqual('AccessKeyId', cred.access_key_id)
+        loop.run_until_complete(main())
+
     def test_RsaKeyPairCredentialProvider(self):
         access_key_id, access_key_secret, region_id = \
             'access_key_id', 'access_key_secret', 'region_id'
@@ -144,6 +198,30 @@ class TestProviders(unittest.TestCase):
 
         cred = prov._create_credential(turl='http://127.0.0.1:8888')
         self.assertEqual('SessionAccessKeyId', cred.access_key_id)
+
+    def test_RsaKeyPairCredentialProvider_async(self):
+        async def main():
+            access_key_id, access_key_secret, region_id = \
+                'access_key_id', 'access_key_secret', 'region_id'
+            prov = providers.RsaKeyPairCredentialProvider(
+                access_key_id, access_key_secret, region_id
+            )
+            self.assertEqual('access_key_id', prov.access_key_id)
+            self.assertEqual('access_key_secret', prov.access_key_secret)
+            self.assertEqual('region_id', prov.region_id)
+
+            conf = models.Config(
+                access_key_id=access_key_id,
+                access_key_secret=access_key_secret
+            )
+            prov = providers.RsaKeyPairCredentialProvider(config=conf)
+            self.assertEqual('access_key_id', prov.access_key_id)
+            self.assertEqual('access_key_secret', prov.access_key_secret)
+            self.assertEqual('cn-hangzhou', prov.region_id)
+
+            cred = await prov._create_credential_async(turl='http://127.0.0.1:8888')
+            self.assertEqual('SessionAccessKeyId', cred.access_key_id)
+        loop.run_until_complete(main())
 
     def test_ProfileCredentialsProvider(self):
         prov = providers.ProfileCredentialsProvider(ini_file)

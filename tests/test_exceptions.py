@@ -2,7 +2,7 @@ import unittest
 from alibabacloud_credentials.exceptions import CredentialException
 
 
-class TestCredentials(unittest.TestCase):
+class TestException(unittest.TestCase):
     def test_CredentialException(self):
         try:
             raise CredentialException('error', 1000, 123456789)
