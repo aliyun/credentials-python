@@ -4,7 +4,7 @@ import unittest
 from . import txt_file
 
 
-class TestCredentials(unittest.TestCase):
+class TestUtil(unittest.TestCase):
 
     def test_get_private_key(self):
         key = auth_util.get_private_key(txt_file)

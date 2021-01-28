@@ -2,7 +2,7 @@ import unittest
 from alibabacloud_credentials.models import Config
 
 
-class TestCredentials(unittest.TestCase):
+class TestModel(unittest.TestCase):
     def test_model_config(self):
         conf1 = Config()
         self.assertEqual('', conf1.access_key_id)

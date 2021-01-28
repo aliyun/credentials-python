@@ -25,37 +25,56 @@ class Client:
             self.cloud_credential = provider.get_credentials()
         self.cloud_credential = self.get_credential(config)
 
-    def get_credential(self, config):
+    @staticmethod
+    def get_credential(config):
         if config.type == ac.ACCESS_KEY:
             return credentials.AccessKeyCredential(config.access_key_id, config.access_key_secret)
         elif config.type == ac.STS:
             return credentials.StsCredential(config.access_key_id, config.access_key_secret, config.security_token)
         elif config.type == ac.BEARER:
             return credentials.BearerTokenCredential(config.bearer_token)
-        else:
-            return self.get_provider(config).get_credentials()
-
-    @staticmethod
-    def get_provider(config):
-        if config.type == ac.ECS_RAM_ROLE:
-            return providers.EcsRamRoleCredentialProvider(config=config)
+        elif config.type == ac.ECS_RAM_ROLE:
+            return credentials.EcsRamRoleCredential(
+                config.access_key_id,
+                config.access_key_secret,
+                config.security_token,
+                0,
+                providers.EcsRamRoleCredentialProvider(config=config)
+            )
         elif config.type == ac.RAM_ROLE_ARN:
-            return providers.RamRoleArnCredentialProvider(config=config)
+            return credentials.RamRoleArnCredential(
+                config.access_key_id,
+                config.access_key_secret,
+                config.security_token,
+                0,
+                providers.RamRoleArnCredentialProvider(config=config)
+            )
         elif config.type == ac.RSA_KEY_PAIR:
-            return providers.RsaKeyPairCredentialProvider(config=config)
-        return providers.DefaultCredentialsProvider()
+            return credentials.RsaKeyPairCredential(
+                config.access_key_id,
+                config.access_key_secret,
+                0,
+                providers.RsaKeyPairCredentialProvider(config=config)
+            )
+        return providers.DefaultCredentialsProvider().get_credentials()
 
-    @attribute_error_return_none
     def get_access_key_id(self):
         return self.cloud_credential.get_access_key_id()
 
-    @attribute_error_return_none
     def get_access_key_secret(self):
         return self.cloud_credential.get_access_key_secret()
 
-    @attribute_error_return_none
     def get_security_token(self):
         return self.cloud_credential.get_security_token()
+
+    async def get_access_key_id_async(self):
+        return await self.cloud_credential.get_access_key_id_async()
+
+    async def get_access_key_secret_async(self):
+        return await self.cloud_credential.get_access_key_secret_async()
+
+    async def get_security_token_async(self):
+        return await self.cloud_credential.get_security_token_async()
 
     @attribute_error_return_none
     def get_type(self):
@@ -64,21 +83,3 @@ class Client:
     @attribute_error_return_none
     def get_bearer_token(self):
         return self.cloud_credential.bearer_token
-
-    async def get_access_key_id_async(self):
-        if hasattr(self.cloud_credential, 'get_access_key_id'):
-            return self.cloud_credential.get_access_key_id()
-        else:
-            return
-
-    async def get_access_key_secret_async(self):
-        if hasattr(self.cloud_credential, 'get_access_key_secret'):
-            return self.cloud_credential.get_access_key_secret()
-        else:
-            return
-
-    async def get_security_token_async(self):
-        if hasattr(self.cloud_credential, 'get_security_token'):
-            return self.cloud_credential.get_security_token()
-        else:
-            return
