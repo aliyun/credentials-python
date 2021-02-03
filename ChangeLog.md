@@ -1,3 +1,6 @@
+### 2020-02-03 Version 0.1.4
+* Optimize the way to obtain the credentials.ini file.
+
 ### 2020-01-28 Version 0.1.3
 * Support async refresh credentials.
 
