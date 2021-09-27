@@ -67,6 +67,7 @@ class DefaultCredentialsProvider(AlibabaCloudCredentialsProvider):
         role_name = au.environment_ECSMeta_data
         if role_name is not None:
             self.user_configuration_providers.append(EcsRamRoleCredentialProvider(role_name))
+        self.user_configuration_providers.append(CredentialsUriProvider())
 
     def get_credentials(self):
         for provider in self.user_configuration_providers:
@@ -449,3 +450,10 @@ class EnvironmentVariableCredentialsProvider(AlibabaCloudCredentialsProvider):
         if len(access_key_secret) == 0:
             raise CredentialException("Environment variable accessKeySecret cannot be empty")
         return credentials.AccessKeyCredential(access_key_id, access_key_secret)
+
+class CredentialsUriProvider(AlibabaCloudCredentialsProvider):
+    def get_credentials(self):
+        credentials_uri = os.environ.get('ALIBABA_CLOUD_CREDENTIALS_URI')
+        if credentials_uri is None:
+            return None
+        return credentials.CredentialsURICredential(credentials_uri)

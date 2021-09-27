@@ -19,7 +19,7 @@ Before you begin, you need to sign up for an Alibaba Cloud account and retrieve 
 
 ### Credential Type
 
-#### access_key
+#### Access Key
 
 Setup access_key credential through [User Information Management][ak], it have full authority over the account, please keep it safe. Sometimes for security reasons, you cannot hand over a primary account AccessKey with full access to the developer of a project. You may create a sub-account [RAM Sub-account][ram] , grant its [authorization][permissions]，and use the AccessKey of RAM Sub-account.
 
@@ -39,9 +39,7 @@ access_key_secret = cred.get_access_key_secret()
 cred_type = cred.get_type()
 ```
 
-
-
-#### sts
+#### STS
 
 Create a temporary security credential by applying Temporary Security Credentials (TSC) through the Security Token Service (STS).
 
@@ -63,9 +61,7 @@ security_token = cred.get_security_token()
 cred_type = cred.get_type()
 ```
 
-
-
-#### ram_role_arn
+#### RAM Role ARN
 
 By specifying [RAM Role][RAM Role], the credential will be able to automatically request maintenance of STS Token. If you want to limit the permissions([How to make a policy][policy]) of STS Token, you can assign value for `Policy`.
 
@@ -91,9 +87,7 @@ security_token = cred.get_security_token()
 cred_type = cred.get_type()
 ```
 
-
-
-#### ecs_ram_role
+#### ECS RAM Role
 
 By specifying the role name, the credential will be able to automatically request maintenance of STS Token.
 
@@ -113,9 +107,27 @@ security_token = cred.get_security_token()
 cred_type = cred.get_type()
 ```
 
+##### Credentials URI
 
+By specifying a credentials uri, get credential from the local or remote uri, the credential will be able to automatically request maintenance to keep it update.
 
-#### rsa_key_pair
+```python
+from alibabacloud_credentials.client import Client
+from alibabacloud_credentials.models import Config
+
+config = Config(
+    type='credentials_uri',                        # credential type
+    credentials_uri='http://local_or_remote_uri/', # Credentials URI
+)
+cred = Client(config)
+
+access_key_id = cred.get_access_key_id()
+access_key_secret = cred.get_access_key_secret()
+security_token = cred.get_security_token()
+cred_type = cred.get_type()
+```
+
+#### RSA Key Pair
 
 By specifying the public key ID and the private key file, the credential will be able to automatically request maintenance of the AccessKey before sending the request. Only Japan station is supported.
 
@@ -136,9 +148,7 @@ security_token = cred.get_security_token()
 cred_type = cred.get_type()
 ```
 
-
-
-#### bearer
+#### Bearer
 
 If credential is required by the Cloud Call Centre (CCC), please apply for Bearer Token maintenance by yourself.
 
@@ -221,6 +231,9 @@ private_key_file = /your/pk.pem    # Private Key file
 
 If the environment variable `ALIBABA_CLOUD_ECS_METADATA` is defined and not empty, the program will take the value of the environment variable as the role name and request <http://100.100.100.200/latest/meta-data/ram/security-credentials/> to get the temporary Security credentials.
 
+4. Credentials URI
+
+If the environment variable `ALIBABA_CLOUD_CREDENTIALS_URI` is defined and not empty, the program will take the value of the environment variable as credentials uri to get the temporary Security credentials.
 
 ## Issues
 

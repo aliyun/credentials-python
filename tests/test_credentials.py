@@ -18,7 +18,7 @@ class TestCredentials(unittest.TestCase):
         def get_credentials(self):
             return credentials.RsaKeyPairCredential("accessKeyId", "accessKeySecret", 100000000000,
                                                     None)
-    
+
     def test_EcsRamRoleCredential(self):
         provider = providers.EcsRamRoleCredentialProvider("roleName")
         access_key_id = 'access_key_id'
@@ -131,6 +131,16 @@ class TestCredentials(unittest.TestCase):
         self.assertEqual('accessKeyId', cred.get_access_key_id())
         self.assertEqual('accessKeySecret', cred.access_key_secret)
         self.assertEqual(100000000000, cred.expiration)
+
+    def test_CredentialsURICredential(self):
+        credentials_uri = 'http://localhost:6666/test'
+        cred = credentials.CredentialsURICredential(
+            credentials_uri
+        )
+        self.assertEqual('access_key_id', cred.access_key_id)
+        self.assertEqual('access_key_secret', cred.access_key_secret)
+        self.assertEqual('security_token', cred.security_token)
+        self.assertEqual('credentials_uri', cred.credential_type)
 
     def test_StsCredential(self):
         access_key_id, access_key_secret, security_token =\
