@@ -102,7 +102,7 @@ class TestCredentials(unittest.TestCase):
 
         self.assertFalse(cred._with_should_refresh())
 
-        g = cred._get_new_credential
+        g = cred._get_new_credential()
         self.assertIsNotNone(g)
 
         cred._refresh_credential()

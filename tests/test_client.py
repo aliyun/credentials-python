@@ -5,8 +5,6 @@ from alibabacloud_credentials.models import Config
 from alibabacloud_credentials.utils import auth_constant
 from alibabacloud_credentials.client import Client
 from alibabacloud_credentials import credentials
-from alibabacloud_credentials import providers
-
 
 class TestClient(unittest.TestCase):
     def test_ak_client(self):
