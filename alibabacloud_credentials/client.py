@@ -1,7 +1,8 @@
-from alibabacloud_credentials import providers, credentials
+from functools import wraps
+
+from alibabacloud_credentials import credentials, providers
 from alibabacloud_credentials.models import Config
 from alibabacloud_credentials.utils import auth_constant as ac
-from functools import wraps
 
 
 def attribute_error_return_none(f):

@@ -1,19 +1,19 @@
-import requests
-import json
-import time
-import configparser
 import calendar
+import configparser
+import json
 import os
+import time
 
+import requests
 from Tea.core import TeaCore
 from Tea.request import TeaRequest
 
-from alibabacloud_credentials.utils import auth_util as au, \
-    auth_constant as ac, \
-    parameter_helper as ph
+from alibabacloud_credentials import credentials
 from alibabacloud_credentials.exceptions import CredentialException
 from alibabacloud_credentials.models import Config
-from alibabacloud_credentials import credentials
+from alibabacloud_credentials.utils import auth_constant as ac
+from alibabacloud_credentials.utils import auth_util as au
+from alibabacloud_credentials.utils import parameter_helper as ph
 
 
 class AlibabaCloudCredentialsProvider:
