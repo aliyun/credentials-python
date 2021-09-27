@@ -7,7 +7,7 @@ from alibabacloud_credentials.client import Client
 from alibabacloud_credentials import credentials
 
 class TestClient(unittest.TestCase):
-    def test_ak_client(self):
+    def test_client_ak(self):
         conf = Config()
         conf.type = auth_constant.ACCESS_KEY
         conf.access_key_id = '123456'
@@ -20,26 +20,36 @@ class TestClient(unittest.TestCase):
         try:
             cred = Client()
             cred.get_access_key_id()
-        except Exception as e:
-            self.assertEqual('not found credentials', str(e))
+        except Exception as ex:
+            self.assertEqual('not found credentials', str(ex))
 
+    def test_client_sts(self):
         conf = Config(type='sts')
         cred = Client(conf)
         self.assertIsInstance(cred.cloud_credential, credentials.StsCredential)
 
+    def test_client_bearer(self):
         conf = Config(type='bearer')
         cred = Client(conf)
         self.assertIsInstance(cred.cloud_credential, credentials.BearerTokenCredential)
 
+    def test_client_ecs_ram_role(self):
         conf = Config(type='ecs_ram_role')
         self.assertIsInstance(Client.get_credential(conf), credentials.EcsRamRoleCredential)
 
+    def test_client_credentials_uri(self):
+        conf = Config(type='credentials_uri')
+        self.assertIsInstance(Client.get_credential(conf), credentials.CredentialsURICredential)
+
+    def test_client_ram_role_arn(self):
         conf = Config(type='ram_role_arn')
         self.assertIsInstance(Client.get_credential(conf), credentials.RamRoleArnCredential)
 
+    def test_client_rsa_key_pair(self):
         conf = Config(type='rsa_key_pair')
         self.assertIsInstance(Client.get_credential(conf), credentials.RsaKeyPairCredential)
 
+    def test_async_call(self):
         conf = Config(
             access_key_id='ak1',
             access_key_secret='sk1',

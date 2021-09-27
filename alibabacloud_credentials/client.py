@@ -21,9 +21,9 @@ class Client:
 
     def __init__(self, config=None):
         if config is None:
-            config = Config()
             provider = providers.DefaultCredentialsProvider()
             self.cloud_credential = provider.get_credentials()
+            return
         self.cloud_credential = self.get_credential(config)
 
     @staticmethod
@@ -42,6 +42,8 @@ class Client:
                 0,
                 providers.EcsRamRoleCredentialProvider(config=config)
             )
+        elif config.type == ac.CREDENTIALS_URI:
+            return credentials.CredentialsURICredential(config.credentials_uri)
         elif config.type == ac.RAM_ROLE_ARN:
             return credentials.RamRoleArnCredential(
                 config.access_key_id,

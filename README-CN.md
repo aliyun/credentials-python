@@ -22,7 +22,7 @@ pip install alibabacloud_credentials
 
 #### 凭证类型
 
-##### access_key
+##### Access Key
 
 通过[用户信息管理](https://usercenter.console.aliyun.com/#/manage/ak)设置 access_key，它们具有该账户完全的权限，请妥善保管。有时出于安全考虑，您不能把具有完全访问权限的主账户 AccessKey 交于一个项目的开发者使用，您可以[创建RAM子账户](https://ram.console.aliyun.com/users)并为子账户[授权](https://ram.console.aliyun.com/permissions)，使用RAM子用户的 AccessKey 来进行API调用。
 
@@ -42,9 +42,7 @@ access_key_secret = cred.get_access_key_secret()
 cred_type = cred.get_type()
 ```
 
-
-
-##### sts
+##### STS
 
 通过安全令牌服务（Security Token Service，简称 STS），申请临时安全凭证（Temporary Security Credentials，简称 TSC），创建临时安全凭证。
 
@@ -66,9 +64,7 @@ security_token = cred.get_security_token()
 cred_type = cred.get_type()
 ```
 
-
-
-##### Ram_role_arn
+##### RAM Role ARN
 
 通过指定[RAM角色](https://ram.console.aliyun.com/#/role/list)，让凭证自动申请维护 STS Token。你可以通过为 `Policy` 赋值来限制获取到的 STS Token 的权限。
 
@@ -94,9 +90,7 @@ security_token = cred.get_security_token()
 cred_type = cred.get_type()
 ```
 
-
-
-##### ecs_ram_role
+##### ECS RAM Role
 
 通过指定角色名称，让凭证自动申请维护 STS Token
 
@@ -116,9 +110,27 @@ security_token = cred.get_security_token()
 cred_type = cred.get_type()
 ```
 
+##### Credentials URI
 
+通过指定一个 Credentials 地址，从外部服务申请并自动维护 STS Token
 
-##### Ras_key_pair
+```python
+from alibabacloud_credentials.client import Client
+from alibabacloud_credentials.models import Config
+
+config = Config(
+    type='credentials_uri',                        # 凭证类型
+    credentials_uri='http://local_or_remote_uri/', # Credentials URI
+)
+cred = Client(config)
+
+access_key_id = cred.get_access_key_id()
+access_key_secret = cred.get_access_key_secret()
+security_token = cred.get_security_token()
+cred_type = cred.get_type()
+```
+
+##### RSA Key Pair
 
 通过指定公钥ID和私钥文件，让凭证自动申请维护 AccessKey。仅支持日本站。
 
@@ -139,9 +151,7 @@ security_token = cred.get_security_token()
 cred_type = cred.get_type()
 ```
 
-
-
-##### bearer
+##### Bearer
 
 如呼叫中心(CCC)需用此凭证，请自行申请维护 Bearer Token。
 
@@ -225,6 +235,9 @@ private_key_file = /your/pk.pem    # Private Key 文件
 
 如果定义了环境变量 `ALIBABA_CLOUD_ECS_METADATA` 且不为空，程序会将该环境变量的值作为角色名称，请求 <http://100.100.100.200/latest/meta-data/ram/security-credentials/> 获取临时安全凭证。
 
+4. Credentials URI
+
+如果定义了环境变量 `ALIBABA_CLOUD_CREDENTIALS_URI` 且不为空, 程序会将该环境变量的值作为 Credentials URI 地址，在调用时，获取临时安全凭证。
 
 ## 问题
 

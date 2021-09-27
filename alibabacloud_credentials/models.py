@@ -26,6 +26,7 @@ class Config(TeaModel):
         timeout: int = 1000,
         connect_timeout: int = 1000,
         proxy: str = '',
+        credentials_uri: str = ''
     ):
         # accesskey id
         self.access_key_id = access_key_id
@@ -57,6 +58,8 @@ class Config(TeaModel):
         self.timeout = timeout
         self.connect_timeout = connect_timeout
         self.proxy = proxy
+        # credentials uri
+        self.credentials_uri = credentials_uri
 
     def validate(self):
         pass
@@ -97,6 +100,8 @@ class Config(TeaModel):
             result['connectTimeout'] = self.connect_timeout
         if self.proxy is not None:
             result['proxy'] = self.proxy
+        if self.credentials_uri is not None:
+            result['credentialsUri'] = self.credentials_uri
         return result
 
     def from_map(self, m: dict = None):
@@ -135,4 +140,6 @@ class Config(TeaModel):
             self.connect_timeout = m.get('connectTimeout')
         if m.get('proxy') is not None:
             self.proxy = m.get('proxy')
+        if m.get('credentialsUri') is not None:
+            self.credentials_uri = m.get('credentials_uri')
         return self
