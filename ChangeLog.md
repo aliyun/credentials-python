@@ -1,3 +1,6 @@
+### 2021-09-28 Version 0.2.0
+* Support credentials uri.
+
 ### 2020-02-03 Version 0.1.4
 * Optimize the way to obtain the credentials.ini file.
 
