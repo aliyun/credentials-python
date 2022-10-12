@@ -1,10 +1,8 @@
 import unittest
-import json
 import time
-import requests
 import asyncio
 
-from alibabacloud_credentials.credentials import AccessKeyCredential
+from Tea.exceptions import RetryError
 from alibabacloud_credentials import providers, models, credentials, exceptions
 from alibabacloud_credentials.utils import auth_util
 from . import ini_file
@@ -175,6 +173,7 @@ class TestProviders(unittest.TestCase):
 
             cred = await prov._create_credentials_async(turl='http://127.0.0.1:8888')
             self.assertEqual('AccessKeyId', cred.access_key_id)
+
         loop.run_until_complete(main())
 
     def test_RsaKeyPairCredentialProvider(self):
@@ -221,6 +220,7 @@ class TestProviders(unittest.TestCase):
 
             cred = await prov._create_credential_async(turl='http://127.0.0.1:8888')
             self.assertEqual('SessionAccessKeyId', cred.access_key_id)
+
         loop.run_until_complete(main())
 
     def test_ProfileCredentialsProvider(self):
@@ -236,7 +236,7 @@ class TestProviders(unittest.TestCase):
         self.assertRaises(exceptions.CredentialException, prov.get_credentials)
 
         auth_util.client_type = 'client1'
-        self.assertRaises(requests.exceptions.ConnectTimeout, prov.get_credentials)
+        self.assertRaises(RetryError, prov.get_credentials)
 
         auth_util.client_type = 'client6'
         self.assertIsNone(prov.get_credentials())
@@ -268,6 +268,3 @@ class TestProviders(unittest.TestCase):
         auth_util.environment_access_key_id = 'a'
         auth_util.environment_access_key_secret = ''
         self.assertRaises(exceptions.CredentialException, prov.get_credentials)
-
-
-

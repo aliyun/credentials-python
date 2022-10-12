@@ -137,13 +137,14 @@ class TestCredentials(unittest.TestCase):
         cred = credentials.CredentialsURICredential(
             credentials_uri
         )
-        self.assertEqual('access_key_id', cred.access_key_id)
-        self.assertEqual('access_key_secret', cred.access_key_secret)
-        self.assertEqual('security_token', cred.security_token)
+        self.assertIsNone(cred.access_key_id)
+        self.assertIsNone(cred.access_key_secret)
+        self.assertIsNone(cred.security_token)
+        self.assertEqual('http://localhost:6666/test', cred.credentials_uri)
         self.assertEqual('credentials_uri', cred.credential_type)
 
     def test_StsCredential(self):
-        access_key_id, access_key_secret, security_token =\
+        access_key_id, access_key_secret, security_token = \
             'access_key_id', 'access_key_secret', 'security_token'
         cred = credentials.StsCredential(
             access_key_id, access_key_secret, security_token
