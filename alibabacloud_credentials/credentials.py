@@ -185,6 +185,60 @@ class RamRoleArnCredential(Credential, _AutomaticallyRefreshCredentials):
         await self._refresh_credential_async()
         return self.security_token
 
+class OIDCRoleArnCredential(Credential, _AutomaticallyRefreshCredentials):
+    """OIDCRoleArnCredential"""
+
+    def __init__(self, access_key_id, access_key_secret, security_token, expiration, provider):
+        super().__init__(expiration, provider)
+        self.access_key_id = access_key_id
+        self.access_key_secret = access_key_secret
+        self.security_token = security_token
+        self.credential_type = ac.OIDC_ROLE_ARN
+
+    def _refresh_credential(self):
+        credential = super()._refresh_credential()
+        if credential:
+            self.access_key_id = credential.access_key_id
+            self.access_key_secret = credential.access_key_secret
+            self.expiration = credential.expiration
+            self.security_token = credential.security_token
+
+    async def _refresh_credential_async(self):
+        credential = None
+        if self._with_should_refresh():
+            credential = await self._get_new_credential_async()
+
+        if credential:
+            self.access_key_id = credential.access_key_id
+            self.access_key_secret = credential.access_key_secret
+            self.expiration = credential.expiration
+            self.security_token = credential.security_token
+
+    def get_access_key_id(self):
+        self._refresh_credential()
+        return self.access_key_id
+
+    def get_access_key_secret(self):
+        self._refresh_credential()
+        return self.access_key_secret
+
+    def get_security_token(self):
+        self._refresh_credential()
+        return self.security_token
+
+    async def get_access_key_id_async(self):
+        await self._refresh_credential_async()
+        return self.access_key_id
+
+    async def get_access_key_secret_async(self):
+        await self._refresh_credential_async()
+        return self.access_key_secret
+
+    async def get_security_token_async(self):
+        await self._refresh_credential_async()
+        return self.security_token
+
+
 class CredentialsURICredential():
     """CredentialsURICredential"""
 

@@ -5,6 +5,7 @@ environment_access_key_id = os.environ.get('ALIBABA_CLOUD_ACCESS_KEY_ID')
 environment_access_key_secret = os.environ.get('ALIBABA_CLOUD_ACCESS_KEY_SECRET')
 environment_ECSMeta_data = os.environ.get('ALIBABA_CLOUD_ECS_METADATA')
 environment_credentials_file = os.environ.get('ALIBABA_CLOUD_CREDENTIALS_FILE')
+environment_oidc_token_file = os.environ.get('ALIBABA_CLOUD_OIDC_TOKEN_FILE')
 private_key = None
 
 

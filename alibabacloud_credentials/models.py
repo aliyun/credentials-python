@@ -7,26 +7,29 @@ class Config(TeaModel):
     """
     Model for initing credential
     """
+
     def __init__(
-        self,
-        access_key_id: str = '',
-        access_key_secret: str = '',
-        security_token: str = '',
-        bearer_token: str = '',
-        duration_seconds: int = '',
-        role_arn: str = '',
-        policy: str = '',
-        role_session_expiration: int = '',
-        role_session_name: str = '',
-        public_key_id: str = '',
-        private_key_file: str = '',
-        role_name: str = '',
-        type: str = '',
-        host: str = '',
-        timeout: int = 1000,
-        connect_timeout: int = 1000,
-        proxy: str = '',
-        credentials_uri: str = ''
+            self,
+            access_key_id: str = '',
+            access_key_secret: str = '',
+            security_token: str = '',
+            bearer_token: str = '',
+            duration_seconds: int = '',
+            role_arn: str = '',
+            oidc_provider_arn: str = '',
+            oidc_token_file_path: str = '',
+            policy: str = '',
+            role_session_expiration: int = '',
+            role_session_name: str = '',
+            public_key_id: str = '',
+            private_key_file: str = '',
+            role_name: str = '',
+            type: str = '',
+            host: str = '',
+            timeout: int = 1000,
+            connect_timeout: int = 1000,
+            proxy: str = '',
+            credentials_uri: str = ''
     ):
         # accesskey id
         self.access_key_id = access_key_id
@@ -40,6 +43,10 @@ class Config(TeaModel):
         self.duration_seconds = duration_seconds
         # role arn
         self.role_arn = role_arn
+        # oidc provider arn
+        self.oidc_provider_arn = oidc_provider_arn
+        # oidc token file path
+        self.oidc_token_file_path = oidc_token_file_path
         # policy
         self.policy = policy
         # role session expiration
@@ -78,6 +85,10 @@ class Config(TeaModel):
             result['durationSeconds'] = self.duration_seconds
         if self.role_arn is not None:
             result['roleArn'] = self.role_arn
+        if self.oidc_provider_arn is not None:
+            result['oidcProviderArn'] = self.oidc_provider_arn
+        if self.oidc_token_file_path is not None:
+            result['oidcTokenFilePath'] = self.oidc_token_file_path
         if self.policy is not None:
             result['policy'] = self.policy
         if self.role_session_expiration is not None:
@@ -118,6 +129,10 @@ class Config(TeaModel):
             self.duration_seconds = m.get('durationSeconds')
         if m.get('roleArn') is not None:
             self.role_arn = m.get('roleArn')
+        if m.get('oidcProviderArn') is not None:
+            self.oidc_provider_arn = m.get('oidcProviderArn')
+        if m.get('oidcTokenFilePath') is not None:
+            self.oidc_token_file_path = m.get('oidcTokenFilePath')
         if m.get('policy') is not None:
             self.policy = m.get('policy')
         if m.get('roleSessionExpiration') is not None:

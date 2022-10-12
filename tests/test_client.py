@@ -46,6 +46,10 @@ class TestClient(unittest.TestCase):
         conf = Config(type='ram_role_arn')
         self.assertIsInstance(Client.get_credential(conf), credentials.RamRoleArnCredential)
 
+    def test_client_oidc_role_arn(self):
+        conf = Config(type='oidc_role_arn', oidc_token_file_path='oidc_token_file_path')
+        self.assertIsInstance(Client.get_credential(conf), credentials.OIDCRoleArnCredential)
+
     def test_client_rsa_key_pair(self):
         conf = Config(type='rsa_key_pair')
         self.assertIsInstance(Client.get_credential(conf), credentials.RsaKeyPairCredential)

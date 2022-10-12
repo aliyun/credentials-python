@@ -59,6 +59,13 @@ class Client:
                 0,
                 providers.RsaKeyPairCredentialProvider(config=config)
             )
+        elif config.type == ac.OIDC_ROLE_ARN:
+            return credentials.OIDCRoleArnCredential(
+                config.access_key_id,
+                config.access_key_secret,
+                config.security_token,
+                0,
+                providers.OIDCRoleArnCredentialProvider(config=config))
         return providers.DefaultCredentialsProvider().get_credentials()
 
     def get_access_key_id(self):
