@@ -29,5 +29,3 @@ class TestUtil(unittest.TestCase):
         test_compose_string_to_sign(self)
         test_sign_string(self)
         test_compose_url(self)
-
-
