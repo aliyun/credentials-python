@@ -31,6 +31,8 @@ class AlibabaCloudCredentialsProvider:
             self.role_session_name = config.role_session_name
             self.public_key_id = config.public_key_id
             self.role_name = config.role_name
+            self.oidc_provider_arn = config.oidc_provider_arn
+            self.oidc_token_file_path = config.oidc_token_file_path
             self.private_key_file = config.private_key_file
             self.bearer_token = config.bearer_token
             self.security_token = config.security_token
@@ -215,8 +217,12 @@ class RamRoleArnCredentialProvider(AlibabaCloudCredentialsProvider):
             'RoleArn': self.role_arn,
             'AccessKeyId': self.access_key_id,
             'RegionId': self.region_id,
-            'RoleSessionName': self.role_session_name
+            'RoleSessionName': self.role_session_name,
+            'SignatureMethod': 'HMAC-SHA1',
+            'SignatureVersion': '1.0'
         }
+        tea_request.query["Timestamp"] = ph.get_iso_8061_date()
+        tea_request.query["SignatureNonce"] = ph.get_uuid()
         if self.policy is not None:
             tea_request.query["Policy"] = self.policy
         string_to_sign = ph.compose_string_to_sign("GET", tea_request.query)
@@ -252,8 +258,12 @@ class RamRoleArnCredentialProvider(AlibabaCloudCredentialsProvider):
             'RoleArn': self.role_arn,
             'AccessKeyId': self.access_key_id,
             'RegionId': self.region_id,
-            'RoleSessionName': self.role_session_name
+            'RoleSessionName': self.role_session_name,
+            'SignatureMethod': 'HMAC-SHA1',
+            'SignatureVersion': '1.0'
         }
+        tea_request.query["Timestamp"] = ph.get_iso_8061_date()
+        tea_request.query["SignatureNonce"] = ph.get_uuid()
         if self.policy is not None:
             tea_request.query["Policy"] = self.policy
         string_to_sign = ph.compose_string_to_sign("GET", tea_request.query)
@@ -273,6 +283,124 @@ class RamRoleArnCredentialProvider(AlibabaCloudCredentialsProvider):
                 expiration = calendar.timegm(time_array)
                 return credentials.RamRoleArnCredential(cre.get("AccessKeyId"), cre.get("AccessKeySecret"),
                                                         cre.get("SecurityToken"), expiration, self)
+        raise CredentialException(response.body.decode('utf-8'))
+
+
+class OIDCRoleArnCredentialProvider(AlibabaCloudCredentialsProvider):
+    """OIDCRoleArnCredentialProvider"""
+
+    def __init__(self, access_key_id=None, access_key_secret=None, role_session_name=None, role_arn=None,
+                 oidc_provider_arn=None,
+                 oidc_token_file_path=None,
+                 region_id=None,
+                 policy=None, config=None):
+        self._verify_empty_args(access_key_id, access_key_secret, config=config)
+        super().__init__(config)
+        self._set_arg('role_arn', role_arn)
+        self._set_arg('oidc_provider_arn', oidc_provider_arn)
+        if oidc_token_file_path is not None:
+            self._set_arg('oidc_token_file_path', oidc_token_file_path)
+        elif config.oidc_token_file_path is not None:
+            self._set_arg('oidc_token_file_path', oidc_token_file_path)
+        elif au.environment_oidc_token_file is not None:
+            self._set_arg('oidc_token_file_path', au.environment_oidc_token_file)
+        else:
+            raise CredentialException(
+                'The oidc_token_file_path does not exist and env ALIBABA_CLOUD_OIDC_TOKEN_FILE is none.')
+        self._set_arg('access_key_id', access_key_id)
+        self._set_arg('access_key_secret', access_key_secret)
+        self._set_arg('region_id', region_id)
+        self._set_arg('role_session_name', role_session_name)
+        self._set_arg('policy', policy)
+
+    def get_credentials(self):
+        return self._create_credentials()
+
+    def _create_credentials(self, turl=None):
+        # 获取credential 先实现签名用工具类
+        oidc_token = au.get_private_key(self.oidc_token_file_path)
+        tea_request = TeaRequest()
+        tea_request.query = {
+            'Action': 'AssumeRoleWithOIDC',
+            'Format': 'JSON',
+            'Version': '2015-04-01',
+            'RegionId': self.region_id,
+            'DurationSeconds': str(self.duration_seconds),
+            'RoleArn': self.role_arn,
+            'OIDCProviderArn': self.oidc_provider_arn,
+            'OIDCToken': oidc_token,
+            'RoleSessionName': self.role_session_name,
+            'SignatureMethod': 'HMAC-SHA1',
+            'SignatureVersion': '1.0'
+        }
+        tea_request.query["Timestamp"] = ph.get_iso_8061_date()
+        tea_request.query["SignatureNonce"] = ph.get_uuid()
+        if self.policy is not None:
+            tea_request.query["Policy"] = self.policy
+        string_to_sign = ph.compose_string_to_sign("GET", tea_request.query)
+        if self.access_key_id is not None and self.access_key_secret is not None:
+            tea_request.query["AccessKeyId"] = self.access_key_id
+            signature = ph.sign_string(string_to_sign, self.access_key_secret + "&")
+            tea_request.query["Signature"] = signature
+        tea_request.protocol = 'https'
+        tea_request.headers['host'] = turl if turl else 'sts.aliyuncs.com'
+        # request
+        response = TeaCore.do_action(tea_request)
+        if response.status_code == 200:
+            dic = json.loads(response.body.decode('utf-8'))
+            if "Credentials" in dic:
+                cre = dic.get("Credentials")
+                # 先转换为时间数组
+                time_array = time.strptime(cre.get("Expiration"), "%Y-%m-%dT%H:%M:%SZ")
+                # 转换为时间戳
+                expiration = calendar.timegm(time_array)
+                return credentials.OIDCRoleArnCredential(cre.get("AccessKeyId"), cre.get("AccessKeySecret"),
+                                                         cre.get("SecurityToken"), expiration, self)
+        raise CredentialException(response.body.decode('utf-8'))
+
+    async def get_credentials_async(self):
+        return await self._create_credentials_async()
+
+    async def _create_credentials_async(self, turl=None):
+        # 获取credential 先实现签名用工具类
+        oidc_token = au.get_private_key(self.oidc_token_file_path)
+        tea_request = TeaRequest()
+        tea_request.query = {
+            'Action': 'AssumeRoleWithOIDC',
+            'Format': 'JSON',
+            'Version': '2015-04-01',
+            'RegionId': self.region_id,
+            'DurationSeconds': str(self.duration_seconds),
+            'RoleArn': self.role_arn,
+            'OIDCProviderArn': self.oidc_provider_arn,
+            'OIDCToken': oidc_token,
+            'RoleSessionName': self.role_session_name,
+            'SignatureMethod': 'HMAC-SHA1',
+            'SignatureVersion': '1.0'
+        }
+        tea_request.query["Timestamp"] = ph.get_iso_8061_date()
+        tea_request.query["SignatureNonce"] = ph.get_uuid()
+        if self.policy is not None:
+            tea_request.query["Policy"] = self.policy
+        string_to_sign = ph.compose_string_to_sign("GET", tea_request.query)
+        if self.access_key_id is not None and self.access_key_secret is not None:
+            tea_request.query["AccessKeyId"] = self.access_key_id
+            signature = ph.sign_string(string_to_sign, self.access_key_secret + "&")
+            tea_request.query["Signature"] = signature
+        tea_request.protocol = 'https'
+        tea_request.headers['host'] = turl if turl else 'sts.aliyuncs.com'
+        # request
+        response = TeaCore.async_do_action(tea_request)
+        if response.status_code == 200:
+            dic = json.loads(response.body.decode('utf-8'))
+            if "Credentials" in dic:
+                cre = dic.get("Credentials")
+                # 先转换为时间数组
+                time_array = time.strptime(cre.get("Expiration"), "%Y-%m-%dT%H:%M:%SZ")
+                # 转换为时间戳
+                expiration = calendar.timegm(time_array)
+                return credentials.OIDCRoleArnCredential(cre.get("AccessKeyId"), cre.get("AccessKeySecret"),
+                                                         cre.get("SecurityToken"), expiration, self)
         raise CredentialException(response.body.decode('utf-8'))
 
 
@@ -297,7 +425,11 @@ class RsaKeyPairCredentialProvider(AlibabaCloudCredentialsProvider):
             'DurationSeconds': str(self.duration_seconds),
             'AccessKeyId': self.access_key_id,
             'RegionId': self.region_id,
+            'SignatureMethod': 'HMAC-SHA1',
+            'SignatureVersion': '1.0'
         }
+        tea_request.query["Timestamp"] = ph.get_iso_8061_date()
+        tea_request.query["SignatureNonce"] = ph.get_uuid()
 
         str_to_sign = ph.compose_string_to_sign('GET', tea_request.query)
         signature = ph.sign_string(str_to_sign, self.access_key_id + '&')
@@ -312,7 +444,8 @@ class RsaKeyPairCredentialProvider(AlibabaCloudCredentialsProvider):
                 cre = dic.get("SessionAccessKey")
                 time_array = time.strptime(cre.get("Expiration"), "%Y-%m-%dT%H:%M:%SZ")
                 expiration = calendar.timegm(time_array)
-                return credentials.RsaKeyPairCredential(cre.get("SessionAccessKeyId"), cre.get("SessionAccessKeySecret"),
+                return credentials.RsaKeyPairCredential(cre.get("SessionAccessKeyId"),
+                                                        cre.get("SessionAccessKeySecret"),
                                                         expiration, self)
         raise CredentialException(response.body.decode('utf-8'))
 
@@ -328,7 +461,11 @@ class RsaKeyPairCredentialProvider(AlibabaCloudCredentialsProvider):
             'DurationSeconds': str(self.duration_seconds),
             'AccessKeyId': self.access_key_id,
             'RegionId': self.region_id,
+            'SignatureMethod': 'HMAC-SHA1',
+            'SignatureVersion': '1.0'
         }
+        tea_request.query["Timestamp"] = ph.get_iso_8061_date()
+        tea_request.query["SignatureNonce"] = ph.get_uuid()
 
         str_to_sign = ph.compose_string_to_sign('GET', tea_request.query)
         signature = ph.sign_string(str_to_sign, self.access_key_id + '&')
@@ -343,7 +480,8 @@ class RsaKeyPairCredentialProvider(AlibabaCloudCredentialsProvider):
                 cre = dic.get("SessionAccessKey")
                 time_array = time.strptime(cre.get("Expiration"), "%Y-%m-%dT%H:%M:%SZ")
                 expiration = calendar.timegm(time_array)
-                return credentials.RsaKeyPairCredential(cre.get("SessionAccessKeyId"), cre.get("SessionAccessKeySecret"),
+                return credentials.RsaKeyPairCredential(cre.get("SessionAccessKeyId"),
+                                                        cre.get("SessionAccessKeySecret"),
                                                         expiration, self)
         raise CredentialException(response.body.decode('utf-8'))
 
@@ -389,6 +527,8 @@ class ProfileCredentialsProvider(AlibabaCloudCredentialsProvider):
             raise CredentialException("The configured client type is empty")
         elif ac.INI_TYPE_ARN == config_type:
             return self._get_sts_assume_role_session_provider(config).get_credentials()
+        elif ac.INI_TYPE_OIDC == config_type:
+            return self._get_sts_oidc_role_session_provider(config).get_credentials()
         elif ac.INI_TYPE_KEY_PAIR == config_type:
             return self._get_sts_get_session_access_key_provider(config).get_credentials()
         elif ac.INI_TYPE_RAM == config_type:
@@ -415,6 +555,26 @@ class ProfileCredentialsProvider(AlibabaCloudCredentialsProvider):
             raise CredentialException("The configured role_session_name or role_arn is empty")
         return RamRoleArnCredentialProvider(
             access_key_id, access_key_secret, role_session_name, role_arn, region_id, policy
+        )
+
+    @staticmethod
+    def _get_sts_oidc_role_session_provider(config):
+        access_key_id = config.get(ac.INI_ACCESS_KEY_ID)
+        access_key_secret = config.get(ac.INI_ACCESS_KEY_IDSECRET)
+        role_session_name = config.get(ac.INI_ROLE_SESSION_NAME)
+        role_arn = config.get(ac.INI_ROLE_ARN)
+        oidc_provider_arn = config.get(ac.INI_OIDC_PROVIDER_ARN)
+        oidc_token_file_path = config.get(ac.INI_OIDC_TOKEN_FILE_PATH)
+        region_id = config.get(ac.DEFAULT_REGION)
+        policy = config.get(ac.INI_POLICY)
+
+        if not role_arn:
+            raise CredentialException("The configured role_arn is empty")
+        if not oidc_provider_arn:
+            raise CredentialException("The configured oidc_provider_arn is empty")
+        return OIDCRoleArnCredentialProvider(
+            access_key_id, access_key_secret, role_session_name, role_arn, oidc_provider_arn, oidc_token_file_path,
+            region_id, policy
         )
 
     @staticmethod
@@ -450,6 +610,7 @@ class EnvironmentVariableCredentialsProvider(AlibabaCloudCredentialsProvider):
         if len(access_key_secret) == 0:
             raise CredentialException("Environment variable accessKeySecret cannot be empty")
         return credentials.AccessKeyCredential(access_key_id, access_key_secret)
+
 
 class CredentialsUriProvider(AlibabaCloudCredentialsProvider):
     def get_credentials(self):

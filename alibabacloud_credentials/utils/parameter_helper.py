@@ -3,6 +3,9 @@ from urllib.parse import quote_plus, urlencode
 import hmac
 import hashlib
 import base64
+import socket
+import uuid
+import datetime
 
 TIME_ZONE = "UTC"
 FORMAT_ISO_8601 = "yyyy-MM-dd'T'HH:mm:ss'Z'"
@@ -10,6 +13,16 @@ FORMAT_RFC_2616 = "%a, %d %b %Y %H:%M:%S GMT"
 SEPARATOR = "&"
 ENCODING = "UTF-8"
 ALGORITHM_NAME = "HmacSHA1"
+
+
+def get_uuid():
+    name = socket.gethostname() + str(uuid.uuid1())
+    namespace = uuid.NAMESPACE_URL
+    return str(uuid.uuid5(namespace, name))
+
+
+def get_iso_8061_date():
+    return datetime.datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%SZ")
 
 
 def compose_string_to_sign(method, queries):

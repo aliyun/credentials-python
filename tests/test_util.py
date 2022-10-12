@@ -11,6 +11,12 @@ class TestUtil(unittest.TestCase):
         self.assertEqual('test_private_key', key)
 
     def test_parameter_helper(self):
+        def test_get_uuid(test):
+            test.assertIsNotNone(parameter_helper.get_uuid())
+
+        def test_get_iso_8061_date(test):
+            test.assertIsNotNone(parameter_helper.get_iso_8061_date())
+
         def test_compose_string_to_sign(test):
             method, queries = 'GET', {}
             string_to_sign = parameter_helper.compose_string_to_sign(method, queries)
@@ -26,6 +32,8 @@ class TestUtil(unittest.TestCase):
             res = parameter_helper.compose_url(endpoint, queries, protocol)
             test.assertEqual('https://aliyun.com/?tests=test', res)
 
+        test_get_uuid(self)
+        test_get_iso_8061_date(self)
         test_compose_string_to_sign(self)
         test_sign_string(self)
         test_compose_url(self)
