@@ -1,3 +1,7 @@
+### 2021-09-28 Version 0.3.0
+* Support oidc credentials.
+* Fix ram credentials.
+
 ### 2021-09-28 Version 0.2.0
 * Support credentials uri.
 
