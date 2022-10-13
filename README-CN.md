@@ -90,6 +90,34 @@ security_token = cred.get_security_token()
 cred_type = cred.get_type()
 ```
 
+##### OIDC Role ARN
+
+通过指定[OIDC角色]，让凭证自动申请维护 STS Token。你可以通过为 `Policy` 赋值来限制获取到的 STS Token 的权限。
+
+```python
+from alibabacloud_credentials.client import Client
+from alibabacloud_credentials.models import Config
+
+config = Config(
+    type='oidc_role_arn',                  # 凭证类型
+    access_key_id='accessKeyId',          # AccessKeyId
+    access_key_secret='accessKeySecret',  # AccessKeySecret
+    security_token='securityToken',       # STS Token
+    role_arn='roleArn',                   # 格式: acs:ram::用户ID:role/角色名
+    oidc_provider_arn='oidcProviderArn',  # 格式: acs:ram::用户Id:oidc-provider/OIDC身份提供商名称
+    oidc_token_file_path='/Users/xxx/xxx',# 格式: path，可不设，但需要通过设置 ALIBABA_CLOUD_OIDC_TOKEN_FILE 来代替
+    role_session_name='roleSessionName',  # 角色会话名称
+    policy='policy',                      # 可选, 限制 STS Token 的权限
+    role_session_expiration=3600          # 可选, 限制 STS Token 的有效时间
+)
+cred = Client(config)
+
+access_key_id = cred.get_access_key_id()
+access_key_secret = cred.get_access_key_secret()
+security_token = cred.get_security_token()
+cred_type = cred.get_type()
+```
+
 ##### ECS RAM Role
 
 通过指定角色名称，让凭证自动申请维护 STS Token
@@ -229,6 +257,18 @@ role_session_name = session_name   # 选填
 type = rsa_key_pair                # 认证方式为 rsa_key_pair
 public_key_id = publicKeyId        # Public Key ID
 private_key_file = /your/pk.pem    # Private Key 文件
+
+[client4]                          # 命名为 `client4` 的配置
+enable = false                     # 不启用
+type = oidc_role_arn               # 认证方式为 oidc_role_arn
+region_id = cn-test                # 获取session用的region
+policy = test                      # 选填 指定权限
+access_key_id = foo                # 选填
+access_key_secret = bar            # 选填
+role_arn = role_arn
+oidc_provider_arn = oidc_provider_arn
+oidc_token_file_path = /xxx/xxx    # 可通过设置环境变量 ALIBABA_CLOUD_OIDC_TOKEN_FILE 来代替
+role_session_name = session_name   # 选填
 ```
 
 3.实例 RAM 角色

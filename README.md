@@ -87,6 +87,34 @@ security_token = cred.get_security_token()
 cred_type = cred.get_type()
 ```
 
+#### OIDC Role ARN
+
+By specifying [OIDC Role][OIDC Role], the credential will be able to automatically request maintenance of STS Token. If you want to limit the permissions([How to make a policy][policy]) of STS Token, you can assign value for `Policy`.
+
+```python
+from alibabacloud_credentials.client import Client
+from alibabacloud_credentials.models import Config
+
+config = Config(
+    type='oidc_role_arn',                  # credential type
+    access_key_id='accessKeyId',          # AccessKeyId
+    access_key_secret='accessKeySecret',  # AccessKeySecret
+    security_token='securityToken',       # STS Token
+    role_arn='roleArn',                   # Format: acs:ram::USER_ID:role/ROLE_NAME
+    oidc_provider_arn='oidcProviderArn',  # Format: acs:ram::USER_Id:oidc-provider/OIDC Providers
+    oidc_token_file_path='/Users/xxx/xxx',# oidc_token_file_path can be replaced by setting environment variable: ALIBABA_CLOUD_OIDC_TOKEN_FILE
+    role_session_name='roleSessionName',  # Role Session Name
+    policy='policy',                      # Not required, limit the permissions of STS Token
+    role_session_expiration=3600          # Not required, limit the Valid time of STS Token
+)
+cred = Client(config)
+
+access_key_id = cred.get_access_key_id()
+access_key_secret = cred.get_access_key_secret()
+security_token = cred.get_security_token()
+cred_type = cred.get_type()
+```
+
 #### ECS RAM Role
 
 By specifying the role name, the credential will be able to automatically request maintenance of STS Token.
@@ -225,6 +253,18 @@ role_session_name = session_name   # optional
 type = rsa_key_pair                # Certification type: rsa_key_pair
 public_key_id = publicKeyId        # Public Key ID
 private_key_file = /your/pk.pem    # Private Key file
+
+[client4]                          # configuration that is named as `client4`
+enable = false                     # Disable
+type = oidc_role_arn               # Certification type: oidc_role_arn
+region_id = cn-test                 
+policy = test                      # optional Specify permissions
+access_key_id = foo                # optional
+access_key_secret = bar            # optional
+role_arn = role_arn
+oidc_provider_arn = oidc_provider_arn
+oidc_token_file_path = /xxx/xxx    # can be replaced by setting environment variable: ALIBABA_CLOUD_OIDC_TOKEN_FILE              
+role_session_name = session_name   # optional
 ```
 
 3. Instance RAM Role
