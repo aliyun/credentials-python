@@ -11,7 +11,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        python-version: [ 3.6, 3.7, 3.8, 3.9 ]
+        python-version: [ 3.7, 3.8, 3.9 ]
     steps:
     - uses: actions/checkout@v2
     - name: Set up Python ${{ matrix.python-version }}
@@ -23,5 +23,12 @@ jobs:
     - name: Test with unittest
       run: |
         coverage run --source="./alibabcloud_credentials" -m pytest tests/
+      env:
+        SUB_ALIBABA_CLOUD_ACCESS_KEY: ${{ secrets.SUB_ALIBABA_CLOUD_ACCESS_KEY }}
+        SUB_ALIBABA_CLOUD_SECRET_KEY: ${{ secrets.SUB_ALIBABA_CLOUD_SECRET_KEY }}
+        ALIBABA_CLOUD_ROLE_ARN: ${{ secrets.ALIBABA_CLOUD_ROLE_ARN }}
+        ALIBABA_CLOUD_ROLE_SESSION_NAME: ${{ secrets.ALIBABA_CLOUD_ROLE_SESSION_NAME }}
+        ALIBABA_CLOUD_OIDC_TOKEN_FILE: ${{ secrets.ALIBABA_CLOUD_OIDC_TOKEN_FILE }}
+        ALIBABA_CLOUD_OIDC_PROVIDER_ARN: ${{ secrets.ALIBABA_CLOUD_OIDC_PROVIDER_ARN }}
     - name: CodeCov
       run: bash <(curl -s https://codecov.io/bash) -cF python

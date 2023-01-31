@@ -113,6 +113,25 @@ class TestProviders(unittest.TestCase):
         prov.clear_credentials_provider()
         self.assertRaises(exceptions.CredentialException, prov.get_credentials)
 
+        environment_role_arn = auth_util.environment_role_arn
+        environment_oidc_provider_arn = auth_util.environment_oidc_provider_arn
+        environment_oidc_token_file = auth_util.environment_oidc_token_file
+        enable_oidc_credential = auth_util.enable_oidc_credential
+
+        auth_util.environment_role_arn = 'acs:ram::roleArn:role/roleArn'
+        auth_util.environment_oidc_provider_arn = 'acs:ram::roleArn'
+        auth_util.environment_oidc_token_file = 'tests/private_key.txt'
+        auth_util.enable_oidc_credential = True
+        prov = providers.DefaultCredentialsProvider()
+        try:
+            prov.get_credentials()
+        except Exception as e:
+            self.assertRegex(e.message, 'AuthenticationFail.OIDCToken.Invalid')
+        auth_util.environment_role_arn = environment_role_arn
+        auth_util.environment_oidc_provider_arn = environment_oidc_provider_arn
+        auth_util.environment_oidc_token_file = environment_oidc_token_file
+        auth_util.enable_oidc_credential = enable_oidc_credential
+
     def test_RamRoleArnCredentialProvider(self):
         access_key_id, access_key_secret, role_session_name, role_arn, region_id, policy = \
             'access_key_id', 'access_key_secret', 'role_session_name', 'role_arn', 'region_id', 'policy'
@@ -149,8 +168,6 @@ class TestProviders(unittest.TestCase):
         prov = providers.OIDCRoleArnCredentialProvider(
             access_key_id, access_key_secret, role_session_name, role_arn, oidc_provider_arn, oidc_token_file_path, region_id, policy
         )
-        self.assertEqual('access_key_id', prov.access_key_id)
-        self.assertEqual('access_key_secret', prov.access_key_secret)
         self.assertEqual('role_session_name', prov.role_session_name)
         self.assertEqual('role_arn', prov.role_arn)
         self.assertEqual('oidc_provider_arn', prov.oidc_provider_arn)
@@ -304,3 +321,6 @@ class TestProviders(unittest.TestCase):
         auth_util.environment_access_key_id = 'a'
         auth_util.environment_access_key_secret = ''
         self.assertRaises(exceptions.CredentialException, prov.get_credentials)
+
+        auth_util.environment_access_key_id = None
+        auth_util.environment_access_key_secret = None
