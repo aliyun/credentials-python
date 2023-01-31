@@ -63,10 +63,19 @@ class DefaultCredentialsProvider(AlibabaCloudCredentialsProvider):
     def __init__(self):
         super().__init__()
         self.user_configuration_providers = [
-            EnvironmentVariableCredentialsProvider(),
-            ProfileCredentialsProvider()
+            EnvironmentVariableCredentialsProvider()
         ]
+        if au.enable_oidc_credential:
+            self.user_configuration_providers.append(OIDCRoleArnCredentialProvider(
+                role_session_name=au.environment_role_session_name,
+                role_arn=au.environment_role_arn,
+                oidc_provider_arn=au.environment_oidc_provider_arn,
+                oidc_token_file_path=au.environment_oidc_token_file
+            ))
+
+        self.user_configuration_providers.append(ProfileCredentialsProvider())
         role_name = au.environment_ECSMeta_data
+
         if role_name is not None:
             self.user_configuration_providers.append(EcsRamRoleCredentialProvider(role_name))
         self.user_configuration_providers.append(CredentialsUriProvider())
@@ -294,7 +303,7 @@ class OIDCRoleArnCredentialProvider(AlibabaCloudCredentialsProvider):
                  oidc_token_file_path=None,
                  region_id=None,
                  policy=None, config=None):
-        self._verify_empty_args(access_key_id, access_key_secret, config=config)
+        self._verify_empty_args(role_arn, oidc_provider_arn, oidc_token_file_path, config=config)
         super().__init__(config)
         self._set_arg('role_arn', role_arn)
         self._set_arg('oidc_provider_arn', oidc_provider_arn)
@@ -307,8 +316,6 @@ class OIDCRoleArnCredentialProvider(AlibabaCloudCredentialsProvider):
         else:
             raise CredentialException(
                 'The oidc_token_file_path does not exist and env ALIBABA_CLOUD_OIDC_TOKEN_FILE is none.')
-        self._set_arg('access_key_id', access_key_id)
-        self._set_arg('access_key_secret', access_key_secret)
         self._set_arg('region_id', region_id)
         self._set_arg('role_session_name', role_session_name)
         self._set_arg('policy', policy)
@@ -329,19 +336,12 @@ class OIDCRoleArnCredentialProvider(AlibabaCloudCredentialsProvider):
             'RoleArn': self.role_arn,
             'OIDCProviderArn': self.oidc_provider_arn,
             'OIDCToken': oidc_token,
-            'RoleSessionName': self.role_session_name,
-            'SignatureMethod': 'HMAC-SHA1',
-            'SignatureVersion': '1.0'
+            'RoleSessionName': self.role_session_name if self.role_session_name else 'defaultSessionName'
         }
         tea_request.query["Timestamp"] = ph.get_iso_8061_date()
         tea_request.query["SignatureNonce"] = ph.get_uuid()
         if self.policy is not None:
             tea_request.query["Policy"] = self.policy
-        string_to_sign = ph.compose_string_to_sign("GET", tea_request.query)
-        if self.access_key_id is not None and self.access_key_secret is not None:
-            tea_request.query["AccessKeyId"] = self.access_key_id
-            signature = ph.sign_string(string_to_sign, self.access_key_secret + "&")
-            tea_request.query["Signature"] = signature
         tea_request.protocol = 'https'
         tea_request.headers['host'] = turl if turl else 'sts.aliyuncs.com'
         # request
@@ -374,19 +374,12 @@ class OIDCRoleArnCredentialProvider(AlibabaCloudCredentialsProvider):
             'RoleArn': self.role_arn,
             'OIDCProviderArn': self.oidc_provider_arn,
             'OIDCToken': oidc_token,
-            'RoleSessionName': self.role_session_name,
-            'SignatureMethod': 'HMAC-SHA1',
-            'SignatureVersion': '1.0'
+            'RoleSessionName': self.role_session_name if self.role_session_name else 'defaultSessionName'
         }
         tea_request.query["Timestamp"] = ph.get_iso_8061_date()
         tea_request.query["SignatureNonce"] = ph.get_uuid()
         if self.policy is not None:
             tea_request.query["Policy"] = self.policy
-        string_to_sign = ph.compose_string_to_sign("GET", tea_request.query)
-        if self.access_key_id is not None and self.access_key_secret is not None:
-            tea_request.query["AccessKeyId"] = self.access_key_id
-            signature = ph.sign_string(string_to_sign, self.access_key_secret + "&")
-            tea_request.query["Signature"] = signature
         tea_request.protocol = 'https'
         tea_request.headers['host'] = turl if turl else 'sts.aliyuncs.com'
         # request
