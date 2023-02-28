@@ -166,7 +166,8 @@ class TestProviders(unittest.TestCase):
         access_key_id, access_key_secret, role_session_name, role_arn, oidc_provider_arn, oidc_token_file_path, region_id, policy = \
             'access_key_id', 'access_key_secret', 'role_session_name', 'role_arn', 'oidc_provider_arn', 'tests/private_key.txt', 'region_id', 'policy'
         prov = providers.OIDCRoleArnCredentialProvider(
-            access_key_id, access_key_secret, role_session_name, role_arn, oidc_provider_arn, oidc_token_file_path, region_id, policy
+            access_key_id, access_key_secret, role_session_name, role_arn, oidc_provider_arn, oidc_token_file_path,
+            region_id, policy
         )
         self.assertEqual('role_session_name', prov.role_session_name)
         self.assertEqual('role_arn', prov.role_arn)
