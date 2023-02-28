@@ -489,8 +489,15 @@ class ProfileCredentialsProvider(AlibabaCloudCredentialsProvider):
         if file_path is None:
             if not ac.HOME:
                 return
-            file_path = os.path.join(ac.HOME, ".alibabacloud/credentials.ini")
-        if len(file_path) == 0:
+            if os.path.exists(os.path.join(ac.HOME, "/.alibabacloud/credentials.ini")):
+                # Support '/.alibabacloud/credentials.ini' is due to historical mistakes.
+                # Please try to use '~/.alibabacloud/credentials.ini'.
+                file_path = os.path.join(ac.HOME, "/.alibabacloud/credentials.ini")
+            elif os.path.exists(os.path.join(ac.HOME, ".alibabacloud/credentials.ini")):
+                file_path = os.path.join(ac.HOME, ".alibabacloud/credentials.ini")
+        if file_path is None:
+            return
+        elif len(file_path) == 0:
             raise CredentialException("The specified credentials file is empty")
 
         # loads ini
