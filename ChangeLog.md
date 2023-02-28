@@ -1,8 +1,11 @@
+### 2023-02-28 Version 0.3.2
+* Support credentials.ini under $HOME.
+
 ### 2023-02-01 Version 0.3.1
 * Support oidc credential in credential chain.
 * Support env ALIBABA_CLOUD_ROLE_ARN/ALIBABA_CLOUD_OIDC_PROVIDER_ARN/ALIBABA_CLOUD_ROLE_SESSION_NAME for oidc credential.
 
-### 2021-09-28 Version 0.3.0
+### 2022-10-13 Version 0.3.0
 * Support oidc credentials.
 * Fix ram credentials.
 
