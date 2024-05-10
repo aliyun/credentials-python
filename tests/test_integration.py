@@ -34,4 +34,4 @@ class TestIntegration(unittest.TestCase):
             default_client = Client()
             default_client.get_access_key_id()
         except CredentialException as e:
-            self.assertRegex(e.message, 'AuthenticationFail.OIDCToken.Invalid')
+            self.assertRegex(e.message, 'AuthenticationFail.NoPermission')

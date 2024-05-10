@@ -29,7 +29,9 @@ class Config(TeaModel):
             timeout: int = 1000,
             connect_timeout: int = 1000,
             proxy: str = '',
-            credentials_uri: str = ''
+            credentials_uri: str = '',
+            enable_imds_v2: bool = False,
+            metadata_token_duration: int = 21600
     ):
         # accesskey id
         self.access_key_id = access_key_id
@@ -59,6 +61,8 @@ class Config(TeaModel):
         self.private_key_file = private_key_file
         # role name
         self.role_name = role_name
+        self.enable_imds_v2 = enable_imds_v2
+        self.metadata_token_duration = metadata_token_duration
         # credential type
         self.type = type
         self.host = host
@@ -101,6 +105,10 @@ class Config(TeaModel):
             result['privateKeyFile'] = self.private_key_file
         if self.role_name is not None:
             result['roleName'] = self.role_name
+        if self.enable_imds_v2 is not None:
+            result['enableIMDSv2'] = self.enable_imds_v2
+        if self.metadata_token_duration is not None:
+            result['metadataTokenDuration'] = self.metadata_token_duration
         if self.type is not None:
             result['type'] = self.type
         if self.host is not None:
@@ -145,6 +153,10 @@ class Config(TeaModel):
             self.private_key_file = m.get('privateKeyFile')
         if m.get('roleName') is not None:
             self.role_name = m.get('roleName')
+        if m.get('enableIMDSv2') is not None:
+            self.enable_imds_v2 = m.get('enableIMDSv2')
+        if m.get('metadataTokenDuration') is not None:
+            self.metadata_token_duration = m.get('metadataTokenDuration')
         if m.get('type') is not None:
             self.type = m.get('type')
         if m.get('host') is not None:
