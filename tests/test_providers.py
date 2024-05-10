@@ -23,6 +23,12 @@ class Request(BaseHTTPRequestHandler):
                          b' {"Expiration": "3999-08-07T20:20:20Z", "AccessKeyId": "AccessKeyId"}, "SessionAccessKey":'
                          b' {"Expiration": "3999-08-07T20:20:20Z", "SessionAccessKeyId": "SessionAccessKeyId"}}')
 
+    def do_PUT(self):
+        self.send_response(200)
+        self.send_header('Content-type', 'text/plain')
+        self.end_headers()
+        self.wfile.write(b'token')
+
 
 def run_server():
     server = HTTPServer(('localhost', 8888), Request)
@@ -45,6 +51,26 @@ class TestProviders(unittest.TestCase):
         self.assertIsNotNone(prov)
         self.assertEqual("roleName", prov.role_name)
 
+        auth_util.environment_ecs_meta_data_imds_v2_enable = 'False'
+        prov = providers.EcsRamRoleCredentialProvider("roleName")
+        self.assertIsNotNone(prov)
+        self.assertEqual("roleName", prov.role_name)
+        self.assertFalse(prov.enable_imds_v2)
+
+        auth_util.environment_ecs_meta_data_imds_v2_enable = '1'
+        prov = providers.EcsRamRoleCredentialProvider("roleName")
+        self.assertIsNotNone(prov)
+        self.assertEqual("roleName", prov.role_name)
+        self.assertFalse(prov.enable_imds_v2)
+
+        auth_util.environment_ecs_meta_data_imds_v2_enable = 'True'
+        prov = providers.EcsRamRoleCredentialProvider("roleName")
+        self.assertIsNotNone(prov)
+        self.assertEqual("roleName", prov.role_name)
+        self.assertTrue(prov.enable_imds_v2)
+
+        auth_util.environment_ecs_meta_data_imds_v2_enable = None
+
         cfg = models.Config()
         cfg.role_name = "roleNameConfig"
         cfg.timeout = 1100
@@ -54,6 +80,23 @@ class TestProviders(unittest.TestCase):
         self.assertEqual("roleNameConfig", prov.role_name)
         self.assertEqual(2300, prov.timeout)
         cred = prov._create_credential(url='127.0.0.1:8888')
+        self.assertEqual('ak', cred.access_key_id)
+
+        prov._get_role_name(url='http://127.0.0.1:8888')
+        self.assertIsNotNone(prov.role_name)
+
+        cfg.enable_imds_v2 = True
+        cfg.metadata_token_duration = 180
+        prov = providers.EcsRamRoleCredentialProvider(config=cfg)
+        self.assertIsNotNone(prov)
+        self.assertTrue(prov.enable_imds_v2)
+        self.assertEqual(180, prov.metadata_token_duration)
+        self.assertEqual("roleNameConfig", prov.role_name)
+        self.assertEqual(2300, prov.timeout)
+        prov._get_metadata_token(url='127.0.0.1:8888')
+        cred = prov._create_credential(url='127.0.0.1:8888')
+        self.assertEqual("token", getattr(prov, '_EcsRamRoleCredentialProvider__metadata_token'))
+        self.assertNotEqual(0, getattr(prov, '_EcsRamRoleCredentialProvider__stale_time'))
         self.assertEqual('ak', cred.access_key_id)
 
         prov._get_role_name(url='http://127.0.0.1:8888')
@@ -126,7 +169,7 @@ class TestProviders(unittest.TestCase):
         try:
             prov.get_credentials()
         except Exception as e:
-            self.assertRegex(e.message, 'AuthenticationFail.OIDCToken.Invalid')
+            self.assertRegex(e.message, 'AuthenticationFail.NoPermission')
         auth_util.environment_role_arn = environment_role_arn
         auth_util.environment_oidc_provider_arn = environment_oidc_provider_arn
         auth_util.environment_oidc_token_file = environment_oidc_token_file
