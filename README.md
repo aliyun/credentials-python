@@ -125,7 +125,8 @@ from alibabacloud_credentials.models import Config
 
 config = Config(
     type='ecs_ram_role',      # credential type
-    role_name='roleName'      # `roleName` is optional. It will be retrieved automatically if not set. It is highly recommended to set it up to reduce requests.
+    role_name='roleName',     # `role_name` is optional. It will be retrieved automatically if not set. It is highly recommended to set it up to reduce requests.
+    enable_imds_v2=True       # `enable_imds_v2` is optional and is recommended to be turned on. It can be replaced by setting environment variable: ALIBABA_CLOUD_ECS_IMDSV2_ENABLE
 )
 cred = Client(config)
 
