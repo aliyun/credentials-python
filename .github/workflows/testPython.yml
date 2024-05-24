@@ -23,7 +23,7 @@ jobs:
       run: pip install alibabacloud-tea coverage pytest
     - name: Test with unittest
       run: |
-        coverage run --source="./alibabcloud_credentials" -m pytest tests/
+        coverage run -m unittest discover
       env:
         SUB_ALIBABA_CLOUD_ACCESS_KEY: ${{ secrets.SUB_ALIBABA_CLOUD_ACCESS_KEY }}
         SUB_ALIBABA_CLOUD_SECRET_KEY: ${{ secrets.SUB_ALIBABA_CLOUD_SECRET_KEY }}
