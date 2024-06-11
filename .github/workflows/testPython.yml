@@ -31,5 +31,7 @@ jobs:
         ALIBABA_CLOUD_ROLE_SESSION_NAME: ${{ secrets.ALIBABA_CLOUD_ROLE_SESSION_NAME }}
         ALIBABA_CLOUD_OIDC_TOKEN_FILE: ${{ secrets.ALIBABA_CLOUD_OIDC_TOKEN_FILE }}
         ALIBABA_CLOUD_OIDC_PROVIDER_ARN: ${{ secrets.ALIBABA_CLOUD_OIDC_PROVIDER_ARN }}
-    - name: CodeCov
-      run: bash <(curl -s https://codecov.io/bash) -cF python
+    - name: Upload Coverage Report
+      uses: codecov/codecov-action@v4
+      with:
+        token: ${{ secrets.CODECOV_TOKEN }} # required
