@@ -355,7 +355,7 @@ class RamRoleArnCredentialProvider(AlibabaCloudCredentialsProvider):
 class OIDCRoleArnCredentialProvider(AlibabaCloudCredentialsProvider):
     """OIDCRoleArnCredentialProvider"""
 
-    def __init__(self, access_key_id=None, access_key_secret=None, role_session_name=None, role_arn=None,
+    def __init__(self, role_session_name=None, role_arn=None,
                  oidc_provider_arn=None,
                  oidc_token_file_path=None,
                  region_id=None,
@@ -616,8 +616,6 @@ class ProfileCredentialsProvider(AlibabaCloudCredentialsProvider):
 
     @staticmethod
     def _get_sts_oidc_role_session_provider(config):
-        access_key_id = config.get(ac.INI_ACCESS_KEY_ID)
-        access_key_secret = config.get(ac.INI_ACCESS_KEY_IDSECRET)
         role_session_name = config.get(ac.INI_ROLE_SESSION_NAME)
         role_arn = config.get(ac.INI_ROLE_ARN)
         oidc_provider_arn = config.get(ac.INI_OIDC_PROVIDER_ARN)
@@ -630,7 +628,7 @@ class ProfileCredentialsProvider(AlibabaCloudCredentialsProvider):
         if not oidc_provider_arn:
             raise CredentialException("The configured oidc_provider_arn is empty")
         return OIDCRoleArnCredentialProvider(
-            access_key_id, access_key_secret, role_session_name, role_arn, oidc_provider_arn, oidc_token_file_path,
+            role_session_name, role_arn, oidc_provider_arn, oidc_token_file_path,
             region_id, policy
         )
 
@@ -660,12 +658,20 @@ class EnvironmentVariableCredentialsProvider(AlibabaCloudCredentialsProvider):
             return
         access_key_id = au.environment_access_key_id
         access_key_secret = au.environment_access_key_secret
+        security_token = au.environment_security_token
+
         if access_key_id is None or access_key_secret is None:
             return
+
         if len(access_key_id) == 0:
             raise CredentialException("Environment variable accessKeyId cannot be empty")
+
         if len(access_key_secret) == 0:
             raise CredentialException("Environment variable accessKeySecret cannot be empty")
+
+        if security_token is not None and len(security_token) > 0:
+            return credentials.StsCredential(access_key_id, access_key_secret, security_token)
+
         return credentials.AccessKeyCredential(access_key_id, access_key_secret)
 
 
