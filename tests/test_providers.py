@@ -356,6 +356,13 @@ class TestProviders(unittest.TestCase):
         self.assertEqual('accessKeyIdTest', cred.access_key_id)
         self.assertEqual('accessKeySecretTest', cred.access_key_secret)
 
+        auth_util.environment_security_token = 'token'
+        cred = prov.get_credentials()
+        self.assertEqual('accessKeyIdTest', cred.access_key_id)
+        self.assertEqual('accessKeySecretTest', cred.access_key_secret)
+        self.assertEqual('token', cred.security_token)
+        self.assertEqual('sts', cred.credential_type)
+
         auth_util.environment_access_key_id = None
         self.assertIsNone(prov.get_credentials())
 
@@ -368,3 +375,4 @@ class TestProviders(unittest.TestCase):
 
         auth_util.environment_access_key_id = None
         auth_util.environment_access_key_secret = None
+        auth_util.environment_security_token = None
