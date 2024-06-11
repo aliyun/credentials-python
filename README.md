@@ -3,6 +3,10 @@ English | [简体中文](README-CN.md)
 
 # Alibaba Cloud Credentials for Python
 
+[![PyPI version](https://badge.fury.io/py/alibabacloud_credentials.svg)](https://badge.fury.io/py/alibabacloud_credentials)
+[![Python Test](https://github.com/aliyun/credentials-python/actions/workflows/testPython.yml/badge.svg)](https://github.com/aliyun/credentials-python/actions/workflows/testPython.yml)
+[![codecov](https://codecov.io/gh/aliyun/credentials-python/graph/badge.svg?token=Y0J1E7T35I)](https://codecov.io/gh/aliyun/credentials-python)
+
 ## Installation
 - **Install with pip**
 
