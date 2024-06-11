@@ -3,6 +3,7 @@ import os
 client_type = os.environ.get('ALIBABA_CLOUD_PROFILE', 'default')
 environment_access_key_id = os.environ.get('ALIBABA_CLOUD_ACCESS_KEY_ID')
 environment_access_key_secret = os.environ.get('ALIBABA_CLOUD_ACCESS_KEY_SECRET')
+environment_security_token = os.environ.get('ALIBABA_CLOUD_SECURITY_TOKEN')
 environment_ECSMeta_data = os.environ.get('ALIBABA_CLOUD_ECS_METADATA')
 environment_ecs_meta_data_imds_v2_enable = os.environ.get('ALIBABA_CLOUD_ECS_IMDSV2_ENABLE')
 environment_credentials_file = os.environ.get('ALIBABA_CLOUD_CREDENTIALS_FILE')
