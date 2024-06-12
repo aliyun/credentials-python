@@ -1,3 +1,6 @@
+### 2024-06-12 Version 0.3.4
+* Support env ALIBABA_CLOUD_SECURITY_TOKEN.
+
 ### 2024-05-24 Version 0.3.3
 * Support IMDSv2 for ecs ram role.
 * Support env ALIBABA_CLOUD_ECS_IMDSV2_ENABLE.
