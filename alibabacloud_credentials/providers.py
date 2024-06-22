@@ -440,7 +440,7 @@ class OIDCRoleArnCredentialProvider(AlibabaCloudCredentialsProvider):
         tea_request.protocol = 'https'
         tea_request.headers['host'] = turl if turl else 'sts.aliyuncs.com'
         # request
-        response = TeaCore.async_do_action(tea_request)
+        response = await TeaCore.async_do_action(tea_request)
         if response.status_code == 200:
             dic = json.loads(response.body.decode('utf-8'))
             if "Credentials" in dic:
