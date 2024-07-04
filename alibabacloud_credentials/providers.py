@@ -6,7 +6,6 @@ import time
 
 import requests
 from Tea.core import TeaCore
-from Tea.request import TeaRequest
 
 from alibabacloud_credentials import credentials
 from alibabacloud_credentials.exceptions import CredentialException
@@ -132,7 +131,7 @@ class EcsRamRoleCredentialProvider(AlibabaCloudCredentialsProvider):
         self.role_name = response.text
 
     async def _get_role_name_async(self, url=None):
-        tea_request = TeaRequest()
+        tea_request = ph.get_new_request()
         tea_request.headers['host'] = url if url else self.__metadata_service_host
         if not url:
             tea_request.pathname = self.__url_in_ecs_metadata
@@ -147,7 +146,7 @@ class EcsRamRoleCredentialProvider(AlibabaCloudCredentialsProvider):
     def _get_metadata_token(self, url=None):
         if self._need_to_refresh_token():
             tmp_time = int(time.mktime(time.localtime())) + self.metadata_token_duration
-            tea_request = TeaRequest()
+            tea_request = ph.get_new_request()
             tea_request.method = 'PUT'
             tea_request.headers['host'] = url if url else self.__metadata_service_host
             tea_request.headers['X-aliyun-ecs-metadata-token-ttl-seconds'] = str(self.metadata_token_duration)
@@ -163,7 +162,7 @@ class EcsRamRoleCredentialProvider(AlibabaCloudCredentialsProvider):
     async def _get_metadata_token_async(self, url=None):
         if self._need_to_refresh_token():
             tmp_time = int(time.mktime(time.localtime())) + self.metadata_token_duration
-            tea_request = TeaRequest()
+            tea_request = ph.get_new_request()
             tea_request.method = 'PUT'
             tea_request.headers['host'] = url if url else self.__metadata_service_host
             tea_request.headers['X-aliyun-ecs-metadata-token-ttl-seconds'] = str(self.metadata_token_duration)
@@ -177,7 +176,7 @@ class EcsRamRoleCredentialProvider(AlibabaCloudCredentialsProvider):
             self.__metadata_token = response.body.decode('utf-8')
 
     def _create_credential(self, url=None, metadata_token=None):
-        tea_request = TeaRequest()
+        tea_request = ph.get_new_request()
         tea_request.headers['host'] = url if url else self.__metadata_service_host
         if metadata_token:
             tea_request.headers['X-aliyun-ecs-metadata-token'] = metadata_token
@@ -215,7 +214,7 @@ class EcsRamRoleCredentialProvider(AlibabaCloudCredentialsProvider):
         return self._create_credential()
 
     async def _create_credential_async(self, url=None, metadata_token=None):
-        tea_request = TeaRequest()
+        tea_request = ph.get_new_request()
         tea_request.headers['host'] = url if url else self.__metadata_service_host
         if metadata_token:
             tea_request.headers['X-aliyun-ecs-metadata-token'] = metadata_token
@@ -274,7 +273,7 @@ class RamRoleArnCredentialProvider(AlibabaCloudCredentialsProvider):
 
     def _create_credentials(self, turl=None):
         # 获取credential 先实现签名用工具类
-        tea_request = TeaRequest()
+        tea_request = ph.get_new_request()
         tea_request.query = {
             'Action': 'AssumeRole',
             'Format': 'JSON',
@@ -315,7 +314,7 @@ class RamRoleArnCredentialProvider(AlibabaCloudCredentialsProvider):
 
     async def _create_credentials_async(self, turl=None):
         # 获取credential 先实现签名用工具类
-        tea_request = TeaRequest()
+        tea_request = ph.get_new_request()
         tea_request.query = {
             'Action': 'AssumeRole',
             'Format': 'JSON',
@@ -383,7 +382,7 @@ class OIDCRoleArnCredentialProvider(AlibabaCloudCredentialsProvider):
     def _create_credentials(self, turl=None):
         # 获取credential 先实现签名用工具类
         oidc_token = au.get_private_key(self.oidc_token_file_path)
-        tea_request = TeaRequest()
+        tea_request = ph.get_new_request()
         tea_request.query = {
             'Action': 'AssumeRoleWithOIDC',
             'Format': 'JSON',
@@ -421,7 +420,7 @@ class OIDCRoleArnCredentialProvider(AlibabaCloudCredentialsProvider):
     async def _create_credentials_async(self, turl=None):
         # 获取credential 先实现签名用工具类
         oidc_token = au.get_private_key(self.oidc_token_file_path)
-        tea_request = TeaRequest()
+        tea_request = ph.get_new_request()
         tea_request.query = {
             'Action': 'AssumeRoleWithOIDC',
             'Format': 'JSON',
@@ -467,7 +466,7 @@ class RsaKeyPairCredentialProvider(AlibabaCloudCredentialsProvider):
         return await self._create_credential_async()
 
     async def _create_credential_async(self, turl=None):
-        tea_request = TeaRequest()
+        tea_request = ph.get_new_request()
         tea_request.query = {
             'Action': 'GenerateSessionAccessKey',
             'Format': 'JSON',
@@ -503,7 +502,7 @@ class RsaKeyPairCredentialProvider(AlibabaCloudCredentialsProvider):
         return self._create_credential()
 
     def _create_credential(self, turl=None):
-        tea_request = TeaRequest()
+        tea_request = ph.get_new_request()
         tea_request.query = {
             'Action': 'GenerateSessionAccessKey',
             'Format': 'JSON',
