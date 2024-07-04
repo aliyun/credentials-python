@@ -4,9 +4,9 @@ import time
 from urllib.parse import urlparse, parse_qs
 
 from Tea.core import TeaCore
-from Tea.request import TeaRequest
 
 from alibabacloud_credentials.utils import auth_constant as ac
+from alibabacloud_credentials.utils import parameter_helper as ph
 from alibabacloud_credentials.exceptions import CredentialException
 from alibabacloud_credentials.models import CredentialModel
 
@@ -351,7 +351,7 @@ class CredentialsURICredential(Credential):
 
     def _get_new_credential(self):
         r = urlparse(self.credentials_uri)
-        tea_request = TeaRequest()
+        tea_request = ph.get_new_request()
         tea_request.headers['host'] = r.hostname
         tea_request.port = r.port
         tea_request.method = 'GET'
@@ -387,7 +387,7 @@ class CredentialsURICredential(Credential):
 
     async def _get_new_credential_async(self):
         r = urlparse(self.credentials_uri)
-        tea_request = TeaRequest()
+        tea_request = ph.get_new_request()
         tea_request.headers['host'] = r.netloc
         tea_request.method = 'GET'
         tea_request.pathname = r.path

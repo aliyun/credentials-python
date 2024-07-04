@@ -6,6 +6,10 @@ import base64
 import socket
 import uuid
 import datetime
+import platform
+
+import alibabacloud_credentials
+from Tea.request import TeaRequest
 
 TIME_ZONE = "UTC"
 FORMAT_ISO_8601 = "yyyy-MM-dd'T'HH:mm:ss'Z'"
@@ -13,6 +17,15 @@ FORMAT_RFC_2616 = "%a, %d %b %Y %H:%M:%S GMT"
 SEPARATOR = "&"
 ENCODING = "UTF-8"
 ALGORITHM_NAME = "HmacSHA1"
+
+
+def get_new_request():
+    request = TeaRequest()
+    request.headers['user-agent'] = f'AlibabaCloud ({platform.system()}; {platform.machine()}) ' \
+                                    f'Python/{platform.python_version()} ' \
+                                    f'Credentials/{alibabacloud_credentials.__version__} ' \
+                                    f'TeaDSL/1'
+    return request
 
 
 def get_uuid():
