@@ -38,6 +38,12 @@ class TestCredentials(unittest.TestCase):
             provider
         )
 
+        model = cred.get_credential()
+        self.assertEqual('access_key_id', model.access_key_id)
+        self.assertEqual('access_key_secret', model.access_key_secret)
+        self.assertEqual('security_token', model.security_token)
+        self.assertEqual(900000000000, cred.expiration)
+
         self.assertEqual('access_key_id', cred.get_access_key_id())
         self.assertEqual('access_key_secret', cred.get_access_key_secret())
         self.assertEqual('security_token', cred.get_security_token())
@@ -52,7 +58,14 @@ class TestCredentials(unittest.TestCase):
             100,
             self.TestEcsRamRoleProvider()
         )
+
         # refresh token
+        model = cred.get_credential()
+        self.assertEqual('accessKeyId', model.access_key_id)
+        self.assertEqual('accessKeySecret', model.access_key_secret)
+        self.assertEqual('securityToken', model.security_token)
+        self.assertEqual(100000000000, cred.expiration)
+
         self.assertEqual('accessKeyId', cred.get_access_key_id())
         self.assertEqual('accessKeySecret', cred.get_access_key_secret())
         self.assertEqual('securityToken', cred.get_security_token())
@@ -65,6 +78,11 @@ class TestCredentials(unittest.TestCase):
             access_key_id=access_key_id,
             access_key_secret=access_key_secret
         )
+        model = cred.get_credential()
+        self.assertEqual('access_key_id', model.access_key_id)
+        self.assertEqual('access_key_secret', model.access_key_secret)
+        self.assertEqual('access_key', model.type)
+
         self.assertEqual('access_key_id', cred.access_key_id)
         self.assertEqual('access_key_secret', cred.access_key_secret)
         self.assertEqual('access_key', cred.credential_type)
@@ -72,6 +90,10 @@ class TestCredentials(unittest.TestCase):
     def test_BearerTokenCredential(self):
         bearer_token = 'bearer_token'
         cred = credentials.BearerTokenCredential(bearer_token=bearer_token)
+        model = cred.get_credential()
+        self.assertEqual('bearer_token', model.bearer_token)
+        self.assertEqual('bearer', model.type)
+
         self.assertEqual('bearer_token', cred.bearer_token)
         self.assertEqual('bearer', cred.credential_type)
 
@@ -97,6 +119,13 @@ class TestCredentials(unittest.TestCase):
 
         # refresh token
         self.assertTrue(cred._with_should_refresh())
+
+        model = cred.get_credential()
+        self.assertEqual('accessKeyId', model.access_key_id)
+        self.assertEqual('accessKeySecret', model.access_key_secret)
+        self.assertEqual('securityToken', model.security_token)
+        self.assertEqual('ram_role_arn', model.type)
+        self.assertEqual(100000000000, cred.expiration)
 
         self.assertEqual('accessKeyId', cred.get_access_key_id())
         self.assertEqual('accessKeySecret', cred.access_key_secret)
@@ -136,6 +165,13 @@ class TestCredentials(unittest.TestCase):
         # refresh token
         self.assertTrue(cred._with_should_refresh())
 
+        model = cred.get_credential()
+        self.assertEqual('accessKeyId', model.access_key_id)
+        self.assertEqual('accessKeySecret', model.access_key_secret)
+        self.assertEqual('securityToken', model.security_token)
+        self.assertEqual('oidc_role_arn', model.type)
+        self.assertEqual(100000000000, cred.expiration)
+
         self.assertEqual('accessKeyId', cred.get_access_key_id())
         self.assertEqual('accessKeySecret', cred.access_key_secret)
         self.assertEqual('securityToken', cred.security_token)
@@ -171,6 +207,13 @@ class TestCredentials(unittest.TestCase):
         )
 
         # refresh token
+
+        model = cred.get_credential()
+        self.assertEqual('accessKeyId', model.access_key_id)
+        self.assertEqual('accessKeySecret', model.access_key_secret)
+        self.assertEqual('rsa_key_pair', model.type)
+        self.assertEqual(100000000000, cred.expiration)
+
         self.assertEqual('accessKeyId', cred.get_access_key_id())
         self.assertEqual('accessKeySecret', cred.access_key_secret)
         self.assertEqual(100000000000, cred.expiration)
@@ -196,3 +239,9 @@ class TestCredentials(unittest.TestCase):
         self.assertEqual('access_key_secret', cred.access_key_secret)
         self.assertEqual('security_token', cred.security_token)
         self.assertEqual('sts', cred.credential_type)
+
+        model = cred.get_credential()
+        self.assertEqual('access_key_id', model.access_key_id)
+        self.assertEqual('access_key_secret', model.access_key_secret)
+        self.assertEqual('security_token', model.security_token)
+        self.assertEqual('sts', model.type)

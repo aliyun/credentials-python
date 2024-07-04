@@ -1,8 +1,8 @@
 from functools import wraps
 
-from alibabacloud_credentials import credentials, providers
-from alibabacloud_credentials.models import Config
+from alibabacloud_credentials import credentials, providers, models
 from alibabacloud_credentials.utils import auth_constant as ac
+from Tea.decorators import deprecated
 
 
 def attribute_error_return_none(f):
@@ -24,10 +24,24 @@ class Client:
             provider = providers.DefaultCredentialsProvider()
             self.cloud_credential = provider.get_credentials()
             return
-        self.cloud_credential = self.get_credential(config)
+        self.cloud_credential = Client.get_credentials(config)
+
+    def get_credential(self) -> models.CredentialModel:
+        """
+        Get credential
+        @return: the whole credential
+        """
+        return self.cloud_credential.get_credential()
+
+    async def get_credential_async(self) -> models.CredentialModel:
+        """
+        Get credential
+        @return: the whole credential
+        """
+        return await self.cloud_credential.get_credential_async()
 
     @staticmethod
-    def get_credential(config):
+    def get_credentials(config):
         if config.type == ac.ACCESS_KEY:
             return credentials.AccessKeyCredential(config.access_key_id, config.access_key_secret)
         elif config.type == ac.STS:
@@ -68,28 +82,36 @@ class Client:
                 providers.OIDCRoleArnCredentialProvider(config=config))
         return providers.DefaultCredentialsProvider().get_credentials()
 
+    @deprecated("Use 'get_credential().access_key_id' instead")
     def get_access_key_id(self):
         return self.cloud_credential.get_access_key_id()
 
+    @deprecated("Use 'get_credential().access_key_secret' instead")
     def get_access_key_secret(self):
         return self.cloud_credential.get_access_key_secret()
 
+    @deprecated("Use 'get_credential().security_token' instead")
     def get_security_token(self):
         return self.cloud_credential.get_security_token()
 
+    @deprecated("Use 'get_credential_async().access_key_id' instead")
     async def get_access_key_id_async(self):
         return await self.cloud_credential.get_access_key_id_async()
 
+    @deprecated("Use 'get_credential_async().access_key_secret' instead")
     async def get_access_key_secret_async(self):
         return await self.cloud_credential.get_access_key_secret_async()
 
+    @deprecated("Use 'get_credential_async().security_token' instead")
     async def get_security_token_async(self):
         return await self.cloud_credential.get_security_token_async()
 
+    @deprecated("Use 'get_credential().type' instead")
     @attribute_error_return_none
     def get_type(self):
         return self.cloud_credential.credential_type
 
+    @deprecated("Use 'get_credential().bearer_token' instead")
     @attribute_error_return_none
     def get_bearer_token(self):
         return self.cloud_credential.bearer_token

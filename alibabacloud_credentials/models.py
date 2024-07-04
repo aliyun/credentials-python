@@ -170,3 +170,59 @@ class Config(TeaModel):
         if m.get('credentialsUri') is not None:
             self.credentials_uri = m.get('credentials_uri')
         return self
+
+
+class CredentialModel(TeaModel):
+    def __init__(
+            self,
+            access_key_id: str = None,
+            access_key_secret: str = None,
+            security_token: str = None,
+            bearer_token: str = None,
+            type: str = None,
+    ):
+        # accesskey id
+        self.access_key_id = access_key_id
+        # accesskey secret
+        self.access_key_secret = access_key_secret
+        # security token
+        self.security_token = security_token
+        # bearer token
+        self.bearer_token = bearer_token
+        # type
+        self.type = type
+
+    def validate(self):
+        pass
+
+    def to_map(self):
+        _map = super().to_map()
+        if _map is not None:
+            return _map
+
+        result = dict()
+        if self.access_key_id is not None:
+            result['accessKeyId'] = self.access_key_id
+        if self.access_key_secret is not None:
+            result['accessKeySecret'] = self.access_key_secret
+        if self.security_token is not None:
+            result['securityToken'] = self.security_token
+        if self.bearer_token is not None:
+            result['bearerToken'] = self.bearer_token
+        if self.type is not None:
+            result['type'] = self.type
+        return result
+
+    def from_map(self, m: dict = None):
+        m = m or dict()
+        if m.get('accessKeyId') is not None:
+            self.access_key_id = m.get('accessKeyId')
+        if m.get('accessKeySecret') is not None:
+            self.access_key_secret = m.get('accessKeySecret')
+        if m.get('securityToken') is not None:
+            self.security_token = m.get('securityToken')
+        if m.get('bearerToken') is not None:
+            self.bearer_token = m.get('bearerToken')
+        if m.get('type') is not None:
+            self.type = m.get('type')
+        return self
