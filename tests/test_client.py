@@ -40,23 +40,23 @@ class TestClient(unittest.TestCase):
 
     def test_client_ecs_ram_role(self):
         conf = Config(type='ecs_ram_role')
-        self.assertIsInstance(Client.get_credential(conf), credentials.EcsRamRoleCredential)
+        self.assertIsInstance(Client.get_credentials(conf), credentials.EcsRamRoleCredential)
 
     def test_client_credentials_uri(self):
         conf = Config(type='credentials_uri')
-        self.assertIsInstance(Client.get_credential(conf), credentials.CredentialsURICredential)
+        self.assertIsInstance(Client.get_credentials(conf), credentials.CredentialsURICredential)
 
     def test_client_ram_role_arn(self):
         conf = Config(type='ram_role_arn')
-        self.assertIsInstance(Client.get_credential(conf), credentials.RamRoleArnCredential)
+        self.assertIsInstance(Client.get_credentials(conf), credentials.RamRoleArnCredential)
 
     def test_client_oidc_role_arn(self):
         conf = Config(type='oidc_role_arn', oidc_token_file_path='oidc_token_file_path')
-        self.assertIsInstance(Client.get_credential(conf), credentials.OIDCRoleArnCredential)
+        self.assertIsInstance(Client.get_credentials(conf), credentials.OIDCRoleArnCredential)
 
     def test_client_rsa_key_pair(self):
         conf = Config(type='rsa_key_pair')
-        self.assertIsInstance(Client.get_credential(conf), credentials.RsaKeyPairCredential)
+        self.assertIsInstance(Client.get_credentials(conf), credentials.RsaKeyPairCredential)
 
     def test_async_call(self):
         conf = Config(

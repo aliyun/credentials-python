@@ -8,6 +8,8 @@ from Tea.request import TeaRequest
 
 from alibabacloud_credentials.utils import auth_constant as ac
 from alibabacloud_credentials.exceptions import CredentialException
+from alibabacloud_credentials.models import CredentialModel
+
 
 class Credential:
     def get_access_key_id(self):
@@ -28,6 +30,12 @@ class Credential:
     async def get_security_token_async(self):
         return
 
+    def get_credential(self):
+        return
+
+    async def get_credential_async(self):
+        return
+
 
 class _AutomaticallyRefreshCredentials:
     def __init__(self, expiration, provider):
@@ -35,6 +43,8 @@ class _AutomaticallyRefreshCredentials:
         self.provider = provider
 
     def _with_should_refresh(self):
+        if self.expiration is None:
+            return True
         return int(time.mktime(time.localtime())) >= (self.expiration - 180)
 
     def _get_new_credential(self):
@@ -46,6 +56,10 @@ class _AutomaticallyRefreshCredentials:
 
     async def _get_new_credential_async(self):
         return await self.provider.get_credentials_async()
+
+    async def _refresh_credential_async(self):
+        if self._with_should_refresh():
+            return await self._get_new_credential_async()
 
 
 class AccessKeyCredential(Credential):
@@ -68,6 +82,20 @@ class AccessKeyCredential(Credential):
     async def get_access_key_secret_async(self):
         return self.access_key_secret
 
+    def get_credential(self):
+        return CredentialModel(
+            access_key_id=self.access_key_id,
+            access_key_secret=self.access_key_secret,
+            type=ac.ACCESS_KEY
+        )
+
+    async def get_credential_async(self):
+        return CredentialModel(
+            access_key_id=self.access_key_id,
+            access_key_secret=self.access_key_secret,
+            type=ac.ACCESS_KEY
+        )
+
 
 class BearerTokenCredential(Credential):
     """BearerTokenCredential"""
@@ -75,6 +103,18 @@ class BearerTokenCredential(Credential):
     def __init__(self, bearer_token):
         self.bearer_token = bearer_token
         self.credential_type = ac.BEARER
+
+    def get_credential(self):
+        return CredentialModel(
+            bearer_token=self.bearer_token,
+            type=ac.BEARER
+        )
+
+    async def get_credential_async(self):
+        return CredentialModel(
+            bearer_token=self.bearer_token,
+            type=ac.BEARER
+        )
 
 
 class EcsRamRoleCredential(Credential, _AutomaticallyRefreshCredentials):
@@ -89,7 +129,6 @@ class EcsRamRoleCredential(Credential, _AutomaticallyRefreshCredentials):
 
     def _refresh_credential(self):
         credential = super()._refresh_credential()
-
         if credential:
             self.access_key_id = credential.access_key_id
             self.access_key_secret = credential.access_key_secret
@@ -97,10 +136,7 @@ class EcsRamRoleCredential(Credential, _AutomaticallyRefreshCredentials):
             self.security_token = credential.security_token
 
     async def _refresh_credential_async(self):
-        credential = None
-        if self._with_should_refresh():
-            credential = await self._get_new_credential_async()
-
+        credential = await super()._refresh_credential_async()
         if credential:
             self.access_key_id = credential.access_key_id
             self.access_key_secret = credential.access_key_secret
@@ -130,6 +166,24 @@ class EcsRamRoleCredential(Credential, _AutomaticallyRefreshCredentials):
     async def get_security_token_async(self):
         await self._refresh_credential_async()
         return self.security_token
+
+    def get_credential(self):
+        self._refresh_credential()
+        return CredentialModel(
+            access_key_id=self.access_key_id,
+            access_key_secret=self.access_key_secret,
+            security_token=self.security_token,
+            type=ac.ECS_RAM_ROLE
+        )
+
+    async def get_credential_async(self):
+        await self._refresh_credential_async()
+        return CredentialModel(
+            access_key_id=self.access_key_id,
+            access_key_secret=self.access_key_secret,
+            security_token=self.security_token,
+            type=ac.ECS_RAM_ROLE
+        )
 
 
 class RamRoleArnCredential(Credential, _AutomaticallyRefreshCredentials):
@@ -151,10 +205,7 @@ class RamRoleArnCredential(Credential, _AutomaticallyRefreshCredentials):
             self.security_token = credential.security_token
 
     async def _refresh_credential_async(self):
-        credential = None
-        if self._with_should_refresh():
-            credential = await self._get_new_credential_async()
-
+        credential = await super()._refresh_credential_async()
         if credential:
             self.access_key_id = credential.access_key_id
             self.access_key_secret = credential.access_key_secret
@@ -184,6 +235,25 @@ class RamRoleArnCredential(Credential, _AutomaticallyRefreshCredentials):
     async def get_security_token_async(self):
         await self._refresh_credential_async()
         return self.security_token
+
+    def get_credential(self):
+        self._refresh_credential()
+        return CredentialModel(
+            access_key_id=self.access_key_id,
+            access_key_secret=self.access_key_secret,
+            security_token=self.security_token,
+            type=ac.RAM_ROLE_ARN
+        )
+
+    async def get_credential_async(self):
+        await self._refresh_credential_async()
+        return CredentialModel(
+            access_key_id=self.access_key_id,
+            access_key_secret=self.access_key_secret,
+            security_token=self.security_token,
+            type=ac.RAM_ROLE_ARN
+        )
+
 
 class OIDCRoleArnCredential(Credential, _AutomaticallyRefreshCredentials):
     """OIDCRoleArnCredential"""
@@ -204,10 +274,7 @@ class OIDCRoleArnCredential(Credential, _AutomaticallyRefreshCredentials):
             self.security_token = credential.security_token
 
     async def _refresh_credential_async(self):
-        credential = None
-        if self._with_should_refresh():
-            credential = await self._get_new_credential_async()
-
+        credential = await super()._refresh_credential_async()
         if credential:
             self.access_key_id = credential.access_key_id
             self.access_key_secret = credential.access_key_secret
@@ -238,8 +305,26 @@ class OIDCRoleArnCredential(Credential, _AutomaticallyRefreshCredentials):
         await self._refresh_credential_async()
         return self.security_token
 
+    def get_credential(self):
+        self._refresh_credential()
+        return CredentialModel(
+            access_key_id=self.access_key_id,
+            access_key_secret=self.access_key_secret,
+            security_token=self.security_token,
+            type=ac.OIDC_ROLE_ARN
+        )
 
-class CredentialsURICredential():
+    async def get_credential_async(self):
+        await self._refresh_credential_async()
+        return CredentialModel(
+            access_key_id=self.access_key_id,
+            access_key_secret=self.access_key_secret,
+            security_token=self.security_token,
+            type=ac.OIDC_ROLE_ARN
+        )
+
+
+class CredentialsURICredential(Credential):
     """CredentialsURICredential"""
 
     def __init__(self, credentials_uri):
@@ -276,7 +361,8 @@ class CredentialsURICredential():
                 tea_request.query[key] = value
         response = TeaCore.do_action(tea_request)
         if response.status_code != 200:
-            raise CredentialException("Get credentials from " + self.credentials_uri + " failed,  HttpCode=" + str(response.status_code))
+            raise CredentialException(
+                "Get credentials from " + self.credentials_uri + " failed,  HttpCode=" + str(response.status_code))
         body = response.body.decode('utf-8')
 
         dic = json.loads(body)
@@ -287,7 +373,8 @@ class CredentialsURICredential():
         content_expiration = dic.get('Expiration')
 
         if content_code != "Success":
-            raise CredentialException("Get credentials from " + self.credentials_uri + " failed,  Code is " + content_code)
+            raise CredentialException(
+                "Get credentials from " + self.credentials_uri + " failed,  Code is " + content_code)
 
         # 先转换为时间数组
         time_array = time.strptime(content_expiration, "%Y-%m-%dT%H:%M:%SZ")
@@ -307,7 +394,8 @@ class CredentialsURICredential():
         tea_request.query = parse_qs(r.query)
         response = await TeaCore.async_do_action(tea_request)
         if response.status_code != 200:
-            raise CredentialException("Get credentials from " + self.credentials_uri + " failed,  HttpCode=" + str(response.status_code))
+            raise CredentialException(
+                "Get credentials from " + self.credentials_uri + " failed,  HttpCode=" + str(response.status_code))
         body = response.body.decode('utf-8')
 
         dic = json.loads(body)
@@ -318,7 +406,8 @@ class CredentialsURICredential():
         content_expiration = dic.get('Expiration')
 
         if content_code != "Success":
-            raise CredentialException("Get credentials from " + self.credentials_uri + " failed,  Code is " + content_code)
+            raise CredentialException(
+                "Get credentials from " + self.credentials_uri + " failed,  Code is " + content_code)
 
         # 先转换为时间数组
         time_array = time.strptime(content_expiration, "%Y-%m-%dT%H:%M:%SZ")
@@ -353,6 +442,25 @@ class CredentialsURICredential():
         await self._ensure_credential_async()
         return self.security_token
 
+    def get_credential(self):
+        self._ensure_credential()
+        return CredentialModel(
+            access_key_id=self.access_key_id,
+            access_key_secret=self.access_key_secret,
+            security_token=self.security_token,
+            type=ac.CREDENTIALS_URI
+        )
+
+    async def get_credential_async(self):
+        await self._ensure_credential_async()
+        return CredentialModel(
+            access_key_id=self.access_key_id,
+            access_key_secret=self.access_key_secret,
+            security_token=self.security_token,
+            type=ac.CREDENTIALS_URI
+        )
+
+
 class RsaKeyPairCredential(Credential, _AutomaticallyRefreshCredentials):
     def __init__(self, access_key_id, access_key_secret, expiration, provider):
         super().__init__(expiration, provider)
@@ -368,10 +476,7 @@ class RsaKeyPairCredential(Credential, _AutomaticallyRefreshCredentials):
             self.expiration = credential.expiration
 
     async def _refresh_credential_async(self):
-        credential = None
-        if self._with_should_refresh():
-            credential = await self._get_new_credential_async()
-
+        credential = await super()._refresh_credential_async()
         if credential:
             self.access_key_id = credential.access_key_id
             self.access_key_secret = credential.access_key_secret
@@ -393,6 +498,22 @@ class RsaKeyPairCredential(Credential, _AutomaticallyRefreshCredentials):
     async def get_access_key_secret_async(self):
         await self._refresh_credential_async()
         return self.access_key_secret
+
+    def get_credential(self):
+        self._refresh_credential()
+        return CredentialModel(
+            access_key_id=self.access_key_id,
+            access_key_secret=self.access_key_secret,
+            type=ac.RSA_KEY_PAIR
+        )
+
+    async def get_credential_async(self):
+        await self._refresh_credential_async()
+        return CredentialModel(
+            access_key_id=self.access_key_id,
+            access_key_secret=self.access_key_secret,
+            type=ac.RSA_KEY_PAIR
+        )
 
 
 class StsCredential(Credential):
@@ -419,3 +540,19 @@ class StsCredential(Credential):
 
     async def get_security_token_async(self):
         return self.security_token
+
+    def get_credential(self):
+        return CredentialModel(
+            access_key_id=self.access_key_id,
+            access_key_secret=self.access_key_secret,
+            security_token=self.security_token,
+            type=ac.STS
+        )
+
+    async def get_credential_async(self):
+        return CredentialModel(
+            access_key_id=self.access_key_id,
+            access_key_secret=self.access_key_secret,
+            security_token=self.security_token,
+            type=ac.STS
+        )

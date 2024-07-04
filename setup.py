@@ -48,7 +48,7 @@ setup_args = {
     'packages': find_packages(exclude=["tests*"]),
     'platforms': 'any',
     'python_requires': '>=3.6',
-    'install_requires': ['alibabacloud-tea'],
+    'install_requires': ['alibabacloud-tea>=0.3.9'],
     'classifiers': (
         'Development Status :: 5 - Production/Stable',
         'Intended Audience :: Developers',
