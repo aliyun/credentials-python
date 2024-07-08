@@ -31,7 +31,8 @@ class Config(TeaModel):
             proxy: str = '',
             credentials_uri: str = '',
             enable_imds_v2: bool = False,
-            metadata_token_duration: int = 21600
+            metadata_token_duration: int = 21600,
+            sts_endpoint: str = None
     ):
         # accesskey id
         self.access_key_id = access_key_id
@@ -71,6 +72,8 @@ class Config(TeaModel):
         self.proxy = proxy
         # credentials uri
         self.credentials_uri = credentials_uri
+        # STS Endpoint
+        self.sts_endpoint = sts_endpoint
 
     def validate(self):
         pass
@@ -121,6 +124,8 @@ class Config(TeaModel):
             result['proxy'] = self.proxy
         if self.credentials_uri is not None:
             result['credentialsUri'] = self.credentials_uri
+        if self.sts_endpoint is not None:
+            result['stsEndpoint'] = self.sts_endpoint
         return result
 
     def from_map(self, m: dict = None):
@@ -169,6 +174,8 @@ class Config(TeaModel):
             self.proxy = m.get('proxy')
         if m.get('credentialsUri') is not None:
             self.credentials_uri = m.get('credentials_uri')
+        if m.get('stsEndpoint') is not None:
+            self.sts_endpoint = m.get('stsEndpoint')
         return self
 
 

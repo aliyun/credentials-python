@@ -9,6 +9,7 @@ class TestModel(unittest.TestCase):
         self.assertEqual('', conf1.access_key_secret)
         self.assertEqual('', conf1.role_name)
         self.assertEqual(1000, conf1.timeout)
+        self.assertIsNone(conf1.sts_endpoint)
 
         conf1.timeout = 0
         conf1.access_key_id = 'access_key_id'

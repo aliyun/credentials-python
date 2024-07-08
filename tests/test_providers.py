@@ -192,18 +192,26 @@ class TestProviders(unittest.TestCase):
             access_key_id=access_key_id,
             access_key_secret=access_key_secret,
             role_session_name=role_session_name,
-            role_arn=role_arn
+            role_arn=role_arn,
+            sts_endpoint='http://127.0.0.1:8888'
         )
         prov = providers.RamRoleArnCredentialProvider(config=conf)
         self.assertEqual('access_key_id', prov.access_key_id)
         self.assertEqual('access_key_secret', prov.access_key_secret)
         self.assertEqual('role_session_name', prov.role_session_name)
         self.assertEqual('role_arn', prov.role_arn)
-        self.assertEqual('cn-hangzhou', prov.region_id)
+        self.assertIsNone(prov.region_id)
         self.assertIsNone(prov.policy)
+        self.assertEqual('http://127.0.0.1:8888', prov.sts_endpoint)
 
-        cred = prov._create_credentials(turl='http://127.0.0.1:8888')
+        cred = prov._create_credentials()
         self.assertEqual('AccessKeyId', cred.access_key_id)
+
+        auth_util.environment_sts_region = 'cn-hangzhou'
+        prov = providers.RamRoleArnCredentialProvider(config=conf)
+        self.assertEqual('cn-hangzhou', prov.region_id)
+        self.assertEqual('sts.cn-hangzhou.aliyuncs.com', prov.sts_endpoint)
+        auth_util.environment_sts_region = None
 
     def test_OIDCRoleArnCredentialProvider(self):
         access_key_id, access_key_secret, role_session_name, role_arn, oidc_provider_arn, oidc_token_file_path, region_id, policy = \
@@ -225,7 +233,8 @@ class TestProviders(unittest.TestCase):
             role_session_name=role_session_name,
             role_arn=role_arn,
             oidc_provider_arn=oidc_provider_arn,
-            oidc_token_file_path=oidc_token_file_path
+            oidc_token_file_path=oidc_token_file_path,
+            sts_endpoint='http://127.0.0.1:8888'
         )
         prov = providers.OIDCRoleArnCredentialProvider(config=conf)
         self.assertEqual('access_key_id', prov.access_key_id)
@@ -234,11 +243,18 @@ class TestProviders(unittest.TestCase):
         self.assertEqual('role_arn', prov.role_arn)
         self.assertEqual('oidc_provider_arn', prov.oidc_provider_arn)
         self.assertEqual('tests/private_key.txt', prov.oidc_token_file_path)
-        self.assertEqual('cn-hangzhou', prov.region_id)
+        self.assertIsNone(prov.region_id)
         self.assertIsNone(prov.policy)
+        self.assertEqual('http://127.0.0.1:8888', prov.sts_endpoint)
 
-        cred = prov._create_credentials(turl='http://127.0.0.1:8888')
+        cred = prov._create_credentials()
         self.assertEqual('AccessKeyId', cred.access_key_id)
+
+        auth_util.environment_sts_region = 'cn-hangzhou'
+        prov = providers.OIDCRoleArnCredentialProvider(config=conf)
+        self.assertEqual('cn-hangzhou', prov.region_id)
+        self.assertEqual('sts.cn-hangzhou.aliyuncs.com', prov.sts_endpoint)
+        auth_util.environment_sts_region = None
 
     def test_RamRoleArnCredentialProvider_async(self):
         async def main():
@@ -258,17 +274,19 @@ class TestProviders(unittest.TestCase):
                 access_key_id=access_key_id,
                 access_key_secret=access_key_secret,
                 role_session_name=role_session_name,
-                role_arn=role_arn
+                role_arn=role_arn,
+                sts_endpoint='http://127.0.0.1:8888'
             )
             prov = providers.RamRoleArnCredentialProvider(config=conf)
             self.assertEqual('access_key_id', prov.access_key_id)
             self.assertEqual('access_key_secret', prov.access_key_secret)
             self.assertEqual('role_session_name', prov.role_session_name)
             self.assertEqual('role_arn', prov.role_arn)
-            self.assertEqual('cn-hangzhou', prov.region_id)
+            self.assertIsNone(prov.region_id)
             self.assertIsNone(prov.policy)
+            self.assertEqual('http://127.0.0.1:8888', prov.sts_endpoint)
 
-            cred = await prov._create_credentials_async(turl='http://127.0.0.1:8888')
+            cred = await prov._create_credentials_async()
             self.assertEqual('AccessKeyId', cred.access_key_id)
 
         loop.run_until_complete(main())
@@ -290,7 +308,7 @@ class TestProviders(unittest.TestCase):
         prov = providers.RsaKeyPairCredentialProvider(config=conf)
         self.assertEqual('access_key_id', prov.access_key_id)
         self.assertEqual('access_key_secret', prov.access_key_secret)
-        self.assertEqual('cn-hangzhou', prov.region_id)
+        self.assertIsNone(prov.region_id)
 
         cred = prov._create_credential(turl='http://127.0.0.1:8888')
         self.assertEqual('SessionAccessKeyId', cred.access_key_id)
@@ -313,7 +331,7 @@ class TestProviders(unittest.TestCase):
             prov = providers.RsaKeyPairCredentialProvider(config=conf)
             self.assertEqual('access_key_id', prov.access_key_id)
             self.assertEqual('access_key_secret', prov.access_key_secret)
-            self.assertEqual('cn-hangzhou', prov.region_id)
+            self.assertIsNone(prov.region_id)
 
             cred = await prov._create_credential_async(turl='http://127.0.0.1:8888')
             self.assertEqual('SessionAccessKeyId', cred.access_key_id)
