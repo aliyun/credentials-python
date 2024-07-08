@@ -57,3 +57,8 @@ class TestModel(unittest.TestCase):
         self.assertEqual('security_token', cred.security_token)
         self.assertEqual('bearer_token', cred.bearer_token)
         self.assertEqual('type', cred.type)
+        self.assertEqual('access_key_id', cred.get_access_key_id())
+        self.assertEqual('access_key_secret', cred.get_access_key_secret())
+        self.assertEqual('security_token', cred.get_security_token())
+        self.assertEqual('bearer_token', cred.get_bearer_token())
+        self.assertEqual('type', cred.get_type())
