@@ -19,7 +19,6 @@ class AlibabaCloudCredentialsProvider:
     """BaseProvider class"""
     duration_seconds = 3600
     timeout = 2000
-    region_id = 'cn-hangzhou'
 
     def __init__(self, config=None):
         if isinstance(config, Config):
@@ -41,6 +40,7 @@ class AlibabaCloudCredentialsProvider:
             self.timeout = config.timeout + config.connect_timeout
             self.connect_timeout = config.connect_timeout
             self.proxy = config.proxy
+            self.sts_endpoint = config.sts_endpoint
 
     def _set_arg(self, key, value):
         if value is not None:
@@ -267,11 +267,18 @@ class RamRoleArnCredentialProvider(AlibabaCloudCredentialsProvider):
         self._set_arg('region_id', region_id)
         self._set_arg('role_session_name', role_session_name)
         self._set_arg('policy', policy)
+        if region_id is None and au.environment_sts_region is not None:
+            self._set_arg('region_id', au.environment_sts_region)
+        if self.region_id is not None:
+            self._set_arg('sts_endpoint', f'sts.{self.region_id}.aliyuncs.com')
+        else:
+            self._set_arg('sts_endpoint',
+                          'sts.aliyuncs.com' if config is None or config.sts_endpoint is None else config.sts_endpoint)
 
     def get_credentials(self):
         return self._create_credentials()
 
-    def _create_credentials(self, turl=None):
+    def _create_credentials(self):
         # 获取credential 先实现签名用工具类
         tea_request = ph.get_new_request()
         tea_request.query = {
@@ -281,7 +288,6 @@ class RamRoleArnCredentialProvider(AlibabaCloudCredentialsProvider):
             'DurationSeconds': str(self.duration_seconds),
             'RoleArn': self.role_arn,
             'AccessKeyId': self.access_key_id,
-            'RegionId': self.region_id,
             'RoleSessionName': self.role_session_name,
             'SignatureMethod': 'HMAC-SHA1',
             'SignatureVersion': '1.0'
@@ -294,7 +300,7 @@ class RamRoleArnCredentialProvider(AlibabaCloudCredentialsProvider):
         signature = ph.sign_string(string_to_sign, self.access_key_secret + "&")
         tea_request.query["Signature"] = signature
         tea_request.protocol = 'https'
-        tea_request.headers['host'] = turl if turl else 'sts.aliyuncs.com'
+        tea_request.headers['host'] = self.sts_endpoint
         # request
         response = TeaCore.do_action(tea_request)
         if response.status_code == 200:
@@ -312,7 +318,7 @@ class RamRoleArnCredentialProvider(AlibabaCloudCredentialsProvider):
     async def get_credentials_async(self):
         return await self._create_credentials_async()
 
-    async def _create_credentials_async(self, turl=None):
+    async def _create_credentials_async(self):
         # 获取credential 先实现签名用工具类
         tea_request = ph.get_new_request()
         tea_request.query = {
@@ -322,7 +328,6 @@ class RamRoleArnCredentialProvider(AlibabaCloudCredentialsProvider):
             'DurationSeconds': str(self.duration_seconds),
             'RoleArn': self.role_arn,
             'AccessKeyId': self.access_key_id,
-            'RegionId': self.region_id,
             'RoleSessionName': self.role_session_name,
             'SignatureMethod': 'HMAC-SHA1',
             'SignatureVersion': '1.0'
@@ -335,7 +340,7 @@ class RamRoleArnCredentialProvider(AlibabaCloudCredentialsProvider):
         signature = ph.sign_string(string_to_sign, self.access_key_secret + "&")
         tea_request.query["Signature"] = signature
         tea_request.protocol = 'https'
-        tea_request.headers['host'] = turl if turl else 'sts.aliyuncs.com'
+        tea_request.headers['host'] = self.sts_endpoint
         # request
         response = await TeaCore.async_do_action(tea_request)
         if response.status_code == 200:
@@ -375,11 +380,18 @@ class OIDCRoleArnCredentialProvider(AlibabaCloudCredentialsProvider):
         self._set_arg('region_id', region_id)
         self._set_arg('role_session_name', role_session_name)
         self._set_arg('policy', policy)
+        if region_id is None and au.environment_sts_region is not None:
+            self._set_arg('region_id', au.environment_sts_region)
+        if self.region_id is not None:
+            self._set_arg('sts_endpoint', f'sts.{self.region_id}.aliyuncs.com')
+        else:
+            self._set_arg('sts_endpoint',
+                          'sts.aliyuncs.com' if config is None or config.sts_endpoint is None else config.sts_endpoint)
 
     def get_credentials(self):
         return self._create_credentials()
 
-    def _create_credentials(self, turl=None):
+    def _create_credentials(self):
         # 获取credential 先实现签名用工具类
         oidc_token = au.get_private_key(self.oidc_token_file_path)
         tea_request = ph.get_new_request()
@@ -387,19 +399,18 @@ class OIDCRoleArnCredentialProvider(AlibabaCloudCredentialsProvider):
             'Action': 'AssumeRoleWithOIDC',
             'Format': 'JSON',
             'Version': '2015-04-01',
-            'RegionId': self.region_id,
             'DurationSeconds': str(self.duration_seconds),
             'RoleArn': self.role_arn,
             'OIDCProviderArn': self.oidc_provider_arn,
             'OIDCToken': oidc_token,
-            'RoleSessionName': self.role_session_name if self.role_session_name else 'defaultSessionName'
+            'RoleSessionName': self.role_session_name or 'defaultSessionName'
         }
         tea_request.query["Timestamp"] = ph.get_iso_8061_date()
         tea_request.query["SignatureNonce"] = ph.get_uuid()
         if self.policy is not None:
             tea_request.query["Policy"] = self.policy
         tea_request.protocol = 'https'
-        tea_request.headers['host'] = turl if turl else 'sts.aliyuncs.com'
+        tea_request.headers['host'] = self.sts_endpoint
         # request
         response = TeaCore.do_action(tea_request)
         if response.status_code == 200:
@@ -417,7 +428,7 @@ class OIDCRoleArnCredentialProvider(AlibabaCloudCredentialsProvider):
     async def get_credentials_async(self):
         return await self._create_credentials_async()
 
-    async def _create_credentials_async(self, turl=None):
+    async def _create_credentials_async(self):
         # 获取credential 先实现签名用工具类
         oidc_token = au.get_private_key(self.oidc_token_file_path)
         tea_request = ph.get_new_request()
@@ -425,19 +436,18 @@ class OIDCRoleArnCredentialProvider(AlibabaCloudCredentialsProvider):
             'Action': 'AssumeRoleWithOIDC',
             'Format': 'JSON',
             'Version': '2015-04-01',
-            'RegionId': self.region_id,
             'DurationSeconds': str(self.duration_seconds),
             'RoleArn': self.role_arn,
             'OIDCProviderArn': self.oidc_provider_arn,
             'OIDCToken': oidc_token,
-            'RoleSessionName': self.role_session_name if self.role_session_name else 'defaultSessionName'
+            'RoleSessionName': self.role_session_name or 'defaultSessionName'
         }
         tea_request.query["Timestamp"] = ph.get_iso_8061_date()
         tea_request.query["SignatureNonce"] = ph.get_uuid()
         if self.policy is not None:
             tea_request.query["Policy"] = self.policy
         tea_request.protocol = 'https'
-        tea_request.headers['host'] = turl if turl else 'sts.aliyuncs.com'
+        tea_request.headers['host'] = self.sts_endpoint
         # request
         response = await TeaCore.async_do_action(tea_request)
         if response.status_code == 200:
@@ -473,7 +483,6 @@ class RsaKeyPairCredentialProvider(AlibabaCloudCredentialsProvider):
             'Version': '2015-04-01',
             'DurationSeconds': str(self.duration_seconds),
             'AccessKeyId': self.access_key_id,
-            'RegionId': self.region_id,
             'SignatureMethod': 'HMAC-SHA1',
             'SignatureVersion': '1.0'
         }
@@ -509,7 +518,6 @@ class RsaKeyPairCredentialProvider(AlibabaCloudCredentialsProvider):
             'Version': '2015-04-01',
             'DurationSeconds': str(self.duration_seconds),
             'AccessKeyId': self.access_key_id,
-            'RegionId': self.region_id,
             'SignatureMethod': 'HMAC-SHA1',
             'SignatureVersion': '1.0'
         }
