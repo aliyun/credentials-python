@@ -226,3 +226,18 @@ class CredentialModel(TeaModel):
         if m.get('type') is not None:
             self.type = m.get('type')
         return self
+
+    def get_access_key_id(self):
+        return self.access_key_id
+
+    def get_access_key_secret(self):
+        return self.access_key_secret
+
+    def get_security_token(self):
+        return self.security_token
+
+    def get_bearer_token(self):
+        return self.bearer_token
+
+    def get_type(self):
+        return self.type
