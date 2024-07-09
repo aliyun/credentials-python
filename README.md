@@ -1,5 +1,6 @@
 English | [简体中文](README-CN.md)
-![](https://aliyunsdk-pages.alicdn.com/icons/AlibabaCloud.svg)
+
+![Alibaba Cloud Logo](https://aliyunsdk-pages.alicdn.com/icons/AlibabaCloud.svg)
 
 # Alibaba Cloud Credentials for Python
 
@@ -8,6 +9,7 @@ English | [简体中文](README-CN.md)
 [![codecov](https://codecov.io/gh/aliyun/credentials-python/graph/badge.svg?token=Y0J1E7T35I)](https://codecov.io/gh/aliyun/credentials-python)
 
 ## Installation
+
 - **Install with pip**
 
 Python SDK uses a common package management tool named `pip`. If pip is not installed, see the [pip user guide](https://pip.pypa.io/en/stable/installing/ "pip User Guide") to install pip.
@@ -140,7 +142,7 @@ security_token = cred.get_security_token()
 cred_type = cred.get_type()
 ```
 
-##### Credentials URI
+#### Credentials URI
 
 By specifying a credentials uri, get credential from the local or remote uri, the credential will be able to automatically request maintenance to keep it update.
 
@@ -151,27 +153,6 @@ from alibabacloud_credentials.models import Config
 config = Config(
     type='credentials_uri',                        # credential type
     credentials_uri='http://local_or_remote_uri/', # Credentials URI
-)
-cred = Client(config)
-
-access_key_id = cred.get_access_key_id()
-access_key_secret = cred.get_access_key_secret()
-security_token = cred.get_security_token()
-cred_type = cred.get_type()
-```
-
-#### RSA Key Pair
-
-By specifying the public key ID and the private key file, the credential will be able to automatically request maintenance of the AccessKey before sending the request. Only Japan station is supported.
-
-```python
-from alibabacloud_credentials.client import Client
-from alibabacloud_credentials.models import Config
-
-config = Config(
-    type='rsa_key_pair',                  # credential type
-    private_key_file='privateKeyFile',    # The file path to store the PrivateKey
-    public_key_id='publicKeyId'           # PublicKeyId of your account
 )
 cred = Client(config)
 
@@ -227,70 +208,75 @@ The default credential provider chain looks for available credentials, with foll
 
 1. Environment Credentials
 
-Look for environment credentials in environment variable. If the `ALIBABA_CLOUD_ACCESS_KEY_ID` and `ALIBABA_CLOUD_ACCESS_KEY_SECRET` environment variables are defined and are not empty, the program will use them to create default credentials. If the `ALIBABA_CLOUD_ACCESS_KEY_ID`, `ALIBABA_CLOUD_ACCESS_KEY_SECRET` and `ALIBABA_CLOUD_SECURITY_TOKEN` environment variables are defined and are not empty, the program will use them to create temporary security credentials(STS). Note: This token has an expiration time, it is recommended to use it in a temporary environment.
+    Look for environment credentials in environment variable. If the `ALIBABA_CLOUD_ACCESS_KEY_ID` and `ALIBABA_CLOUD_ACCESS_KEY_SECRET` environment variables are defined and are not empty, the program will use them to create default credentials. If the `ALIBABA_CLOUD_ACCESS_KEY_ID`, `ALIBABA_CLOUD_ACCESS_KEY_SECRET` and `ALIBABA_CLOUD_SECURITY_TOKEN` environment variables are defined and are not empty, the program will use them to create temporary security credentials(STS). Note: This token has an expiration time, it is recommended to use it in a temporary environment.
 
 2. Credentials File
 
-If there is `~/.alibabacloud/credentials.ini default file (Windows shows C:\Users\USER_NAME\.alibabacloud\credentials.ini)`, the program automatically creates credentials with the specified type and name. The default file is not necessarily exist, but a parse error will throw an exception. The name of configuration item is lowercase.This configuration file can be shared between different projects and between different tools. Because it is outside of the project and will not be accidentally committed to the version control. The path to the default file can be modified by defining the `ALIBABA_CLOUD_CREDENTIALS_FILE` environment variable. If not configured, use the default configuration `default`. You can also set the environment variables `ALIBABA_CLOUD_PROFILE` to use the configuration.
+    If there is `~/.alibabacloud/credentials.ini default file (Windows shows C:\Users\USER_NAME\.alibabacloud\credentials.ini)`, the program automatically creates credentials with the specified type and name. The default file is not necessarily exist, but a parse error will throw an exception. The name of configuration item is lowercase.This configuration file can be shared between different projects and between different tools. Because it is outside of the project and will not be accidentally committed to the version control. The path to the default file can be modified by defining the `ALIBABA_CLOUD_CREDENTIALS_FILE` environment variable. If not configured, use the default configuration `default`. You can also set the environment variables `ALIBABA_CLOUD_PROFILE` to use the configuration.
 
-```ini
-[default]                          # default setting
-enable = true                      # Enable，Enabled by default if this option is not present
-type = access_key                  # Certification type: access_key
-access_key_id = foo                # Key
-access_key_secret = bar            # Secret
+    ```ini
+    [default]                          # default setting
+    enable = true                      # Enable，Enabled by default if this option is not present
+    type = access_key                  # Certification type: access_key
+    access_key_id = foo                # Key
+    access_key_secret = bar            # Secret
 
-[client1]                          # configuration that is named as `client1`
-type = ecs_ram_role                # Certification type: ecs_ram_role
-role_name = EcsRamRoleTest         # Role Name
+    [client1]                          # configuration that is named as `client1`
+    type = ecs_ram_role                # Certification type: ecs_ram_role
+    role_name = EcsRamRoleTest         # Role Name
 
-[client2]                          # configuration that is named as `client2`
-enable = false                     # Disable
-type = ram_role_arn                # Certification type: ram_role_arn
-region_id = cn-test
-policy = test                      # optional Specify permissions
-access_key_id = foo
-access_key_secret = bar
-role_arn = role_arn
-role_session_name = session_name   # optional
+    [client2]                          # configuration that is named as `client2`
+    enable = false                     # Disable
+    type = ram_role_arn                # Certification type: ram_role_arn
+    region_id = cn-test
+    policy = test                      # optional Specify permissions
+    access_key_id = foo
+    access_key_secret = bar
+    role_arn = role_arn
+    role_session_name = session_name   # optional
 
-[client3]                          # configuration that is named as `client3`
-type = rsa_key_pair                # Certification type: rsa_key_pair
-public_key_id = publicKeyId        # Public Key ID
-private_key_file = /your/pk.pem    # Private Key file
-
-[client4]                          # configuration that is named as `client4`
-enable = false                     # Disable
-type = oidc_role_arn               # Certification type: oidc_role_arn
-region_id = cn-test                 
-policy = test                      # optional Specify permissions
-access_key_id = foo                # optional
-access_key_secret = bar            # optional
-role_arn = role_arn
-oidc_provider_arn = oidc_provider_arn
-oidc_token_file_path = /xxx/xxx    # can be replaced by setting environment variable: ALIBABA_CLOUD_OIDC_TOKEN_FILE              
-role_session_name = session_name   # optional
-```
+    [client3]                          # configuration that is named as `client3`
+    enable = false                     # Disable
+    type = oidc_role_arn               # Certification type: oidc_role_arn
+    region_id = cn-test                 
+    policy = test                      # optional Specify permissions
+    access_key_id = foo                # optional
+    access_key_secret = bar            # optional
+    role_arn = role_arn
+    oidc_provider_arn = oidc_provider_arn
+    oidc_token_file_path = /xxx/xxx    # can be replaced by setting environment variable: ALIBABA_CLOUD_OIDC_TOKEN_FILE              
+    role_session_name = session_name   # optional
+    ```
 
 3. Instance RAM Role
 
-If the environment variable `ALIBABA_CLOUD_ECS_METADATA` is defined and not empty, the program will take the value of the environment variable as the role name and request <http://100.100.100.200/latest/meta-data/ram/security-credentials/> to get the temporary Security credentials.
+    If the environment variable `ALIBABA_CLOUD_ECS_METADATA` is defined and not empty, the program will take the value of the environment variable as the role name and request <http://100.100.100.200/latest/meta-data/ram/security-credentials/> to get the temporary Security credentials.
 
 4. Credentials URI
 
-If the environment variable `ALIBABA_CLOUD_CREDENTIALS_URI` is defined and not empty, the program will take the value of the environment variable as credentials uri to get the temporary Security credentials.
+    If the environment variable `ALIBABA_CLOUD_CREDENTIALS_URI` is defined and not empty, the program will take the value of the environment variable as credentials uri to get the temporary Security credentials.
 
 ## Issues
 
 [Opening an Issue](https://github.com/aliyun/credentials-python/issues/new), Issues not conforming to the guidelines may be closed immediately.
 
 ## Changelog
+
 Detailed changes for each release are documented in the [release notes](./ChangeLog.md).
 
 ## References
-* [Latest Release](https://github.com/aliyun/credentials-python)
+
+- [Latest Release](https://github.com/aliyun/credentials-python)
 
 ## License
+
 [Apache-2.0](http://www.apache.org/licenses/LICENSE-2.0)
 
 Copyright (c) 2009-present, Alibaba Cloud All rights reserved.
+
+[ak]: https://usercenter.console.aliyun.com/#/manage/ak
+[ram]: https://ram.console.aliyun.com/users
+[permissions]: https://ram.console.aliyun.com/permissions
+[RAM Role]: https://ram.console.aliyun.com/#/role/list
+[OIDC Role]: https://help.aliyun.com/zh/ram/user-guide/role-based-sso-by-using-oidc
+[policy]: https://help.aliyun.com/zh/ram/user-guide/policy-management/
