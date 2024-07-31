@@ -1,3 +1,8 @@
+### 2024-07-31 Version 0.3.5
+* Support region or endpoint for sts requests.
+* Support user agent for credentials requests.
+* Solve the inconsistency of credentials refreshes.
+
 ### 2024-06-12 Version 0.3.4
 * Support env ALIBABA_CLOUD_SECURITY_TOKEN.
 
