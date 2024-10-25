@@ -29,8 +29,7 @@ class AlibabaCloudCredentialsProvider:
             self.role_session_name = config.role_session_name
             self.public_key_id = config.public_key_id
             self.role_name = config.role_name
-            self.enable_imds_v2 = config.enable_imds_v2
-            self.metadata_token_duration = config.metadata_token_duration
+            self.disable_imds_v1 = config.disable_imds_v1
             self.oidc_provider_arn = config.oidc_provider_arn
             self.oidc_token_file_path = config.oidc_token_file_path
             self.private_key_file = config.private_key_file
@@ -114,25 +113,30 @@ class EcsRamRoleCredentialProvider(AlibabaCloudCredentialsProvider):
         self.__ecs_metadata_token_fetch_error_msg = "Failed to get token from ECS Metadata Service."
         self.__metadata_service_host = "100.100.100.200"
         self._set_arg('role_name', role_name)
-        self.__metadata_token = None
-        self.__stale_time = 0
-        self.enable_imds_v2 = au.environment_ecs_meta_data_imds_v2_enable and au.environment_ecs_meta_data_imds_v2_enable.lower() == 'true'
-        self.metadata_token_duration = self.default_metadata_token_duration
+        self.disable_imds_v1 = au.environment_imds_v1_disabled and au.environment_imds_v1_disabled.lower() == 'true'
+
         if isinstance(config, Config):
-            self.enable_imds_v2 = config.enable_imds_v2
-            self.metadata_token_duration = config.metadata_token_duration
+            self.disable_imds_v1 = config.disable_imds_v1 is not None and config.disable_imds_v1 == True
 
     def _get_role_name(self, url=None):
-        url = url if url else f'http://{self.__metadata_service_host}{self.__url_in_ecs_metadata}'
-        response = requests.get(url, timeout=self.timeout / 1000)
+        tea_request = ph.get_new_request()
+        tea_request.headers['host'] = url if url else self.__metadata_service_host
+        metadata_token = self._get_metadata_token(url)
+        if metadata_token is not None:
+            tea_request.headers['X-aliyun-ecs-metadata-token'] = metadata_token
+        if not url:
+            tea_request.pathname = self.__url_in_ecs_metadata
+        response = TeaCore.do_action(tea_request)
         if response.status_code != 200:
             raise CredentialException(self.__ecs_metadata_fetch_error_msg + " HttpCode=" + str(response.status_code))
-        response.encoding = 'utf-8'
-        self.role_name = response.text
+        self.role_name = response.body.decode('utf-8')
 
     async def _get_role_name_async(self, url=None):
         tea_request = ph.get_new_request()
         tea_request.headers['host'] = url if url else self.__metadata_service_host
+        metadata_token = await self._get_metadata_token_async(url)
+        if metadata_token is not None:
+            tea_request.headers['X-aliyun-ecs-metadata-token'] = metadata_token
         if not url:
             tea_request.pathname = self.__url_in_ecs_metadata
         response = await TeaCore.async_do_action(tea_request)
@@ -140,45 +144,47 @@ class EcsRamRoleCredentialProvider(AlibabaCloudCredentialsProvider):
             raise CredentialException(self.__ecs_metadata_fetch_error_msg + " HttpCode=" + str(response.status_code))
         self.role_name = response.body.decode('utf-8')
 
-    def _need_to_refresh_token(self):
-        return int(time.mktime(time.localtime())) >= self.__stale_time
-
     def _get_metadata_token(self, url=None):
-        if self._need_to_refresh_token():
-            tmp_time = int(time.mktime(time.localtime())) + self.metadata_token_duration
-            tea_request = ph.get_new_request()
-            tea_request.method = 'PUT'
-            tea_request.headers['host'] = url if url else self.__metadata_service_host
-            tea_request.headers['X-aliyun-ecs-metadata-token-ttl-seconds'] = str(self.metadata_token_duration)
-            if not url:
-                tea_request.pathname = self.__url_in_ecs_metadata_token
+        tea_request = ph.get_new_request()
+        tea_request.method = 'PUT'
+        tea_request.headers['host'] = url if url else self.__metadata_service_host
+        tea_request.headers['X-aliyun-ecs-metadata-token-ttl-seconds'] = str(self.default_metadata_token_duration)
+        if not url:
+            tea_request.pathname = self.__url_in_ecs_metadata_token
+        try:
             response = TeaCore.do_action(tea_request)
             if response.status_code != 200:
                 raise CredentialException(
                     self.__ecs_metadata_token_fetch_error_msg + " HttpCode=" + str(response.status_code))
-            self.__stale_time = tmp_time
-            self.__metadata_token = response.body.decode('utf-8')
+            return response.body.decode('utf-8')
+        except Exception as e:
+            if self.disable_imds_v1:
+                raise e
+            return None
 
     async def _get_metadata_token_async(self, url=None):
-        if self._need_to_refresh_token():
-            tmp_time = int(time.mktime(time.localtime())) + self.metadata_token_duration
-            tea_request = ph.get_new_request()
-            tea_request.method = 'PUT'
-            tea_request.headers['host'] = url if url else self.__metadata_service_host
-            tea_request.headers['X-aliyun-ecs-metadata-token-ttl-seconds'] = str(self.metadata_token_duration)
-            if not url:
-                tea_request.pathname = self.__url_in_ecs_metadata_token
+        tea_request = ph.get_new_request()
+        tea_request.method = 'PUT'
+        tea_request.headers['host'] = url if url else self.__metadata_service_host
+        tea_request.headers['X-aliyun-ecs-metadata-token-ttl-seconds'] = str(self.default_metadata_token_duration)
+        if not url:
+            tea_request.pathname = self.__url_in_ecs_metadata_token
+        try:
             response = await TeaCore.async_do_action(tea_request)
             if response.status_code != 200:
                 raise CredentialException(
                     self.__ecs_metadata_token_fetch_error_msg + " HttpCode=" + str(response.status_code))
-            self.__stale_time = tmp_time
-            self.__metadata_token = response.body.decode('utf-8')
+            return response.body.decode('utf-8')
+        except Exception as e:
+            if self.disable_imds_v1:
+                raise e
+            return None
 
-    def _create_credential(self, url=None, metadata_token=None):
+    def _create_credential(self, url=None):
         tea_request = ph.get_new_request()
         tea_request.headers['host'] = url if url else self.__metadata_service_host
-        if metadata_token:
+        metadata_token = self._get_metadata_token(url)
+        if metadata_token is not None:
             tea_request.headers['X-aliyun-ecs-metadata-token'] = metadata_token
         if not url:
             tea_request.pathname = self.__url_in_ecs_metadata + self.role_name
@@ -208,15 +214,13 @@ class EcsRamRoleCredentialProvider(AlibabaCloudCredentialsProvider):
     def get_credentials(self):
         if self.role_name == "":
             self._get_role_name()
-        if self.enable_imds_v2:
-            self._get_metadata_token()
-            return self._create_credential(metadata_token=self.__metadata_token)
         return self._create_credential()
 
-    async def _create_credential_async(self, url=None, metadata_token=None):
+    async def _create_credential_async(self, url=None):
         tea_request = ph.get_new_request()
         tea_request.headers['host'] = url if url else self.__metadata_service_host
-        if metadata_token:
+        metadata_token = await self._get_metadata_token_async(url)
+        if metadata_token is not None:
             tea_request.headers['X-aliyun-ecs-metadata-token'] = metadata_token
         if not url:
             tea_request.pathname = self.__url_in_ecs_metadata + self.role_name
@@ -247,9 +251,6 @@ class EcsRamRoleCredentialProvider(AlibabaCloudCredentialsProvider):
     async def get_credentials_async(self):
         if self.role_name == "":
             await self._get_role_name_async()
-        if self.enable_imds_v2:
-            await self._get_metadata_token_async()
-            return await self._create_credential_async(metadata_token=self.__metadata_token)
         return await self._create_credential_async()
 
 

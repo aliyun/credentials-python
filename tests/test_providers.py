@@ -4,6 +4,7 @@ import asyncio
 
 from Tea.exceptions import RetryError
 from alibabacloud_credentials import providers, models, credentials, exceptions
+from alibabacloud_credentials.exceptions import CredentialException
 from alibabacloud_credentials.utils import auth_util
 from . import ini_file
 
@@ -30,9 +31,28 @@ class Request(BaseHTTPRequestHandler):
         self.wfile.write(b'token')
 
 
+class RequestError(BaseHTTPRequestHandler):
+    def do_GET(self):
+        self.send_response(500)
+        self.send_header('Content-type', 'text/plain')
+        self.end_headers()
+        self.wfile.write(b'error')
+
+    def do_PUT(self):
+        self.send_response(500)
+        self.send_header('Content-type', 'text/plain')
+        self.end_headers()
+        self.wfile.write(b'error')
+
+
 def run_server():
     server = HTTPServer(('localhost', 8888), Request)
     server.serve_forever()
+
+
+def run_server_error():
+    server_error = HTTPServer(('localhost', 9999), RequestError)
+    server_error.serve_forever()
 
 
 class TestProviders(unittest.TestCase):
@@ -41,6 +61,9 @@ class TestProviders(unittest.TestCase):
         server = threading.Thread(target=run_server)
         server.setDaemon(True)
         server.start()
+        server_error = threading.Thread(target=run_server_error)
+        server_error.setDaemon(True)
+        server_error.start()
 
     @staticmethod
     def strftime(t):
@@ -51,25 +74,25 @@ class TestProviders(unittest.TestCase):
         self.assertIsNotNone(prov)
         self.assertEqual("roleName", prov.role_name)
 
-        auth_util.environment_ecs_meta_data_imds_v2_enable = 'False'
+        auth_util.environment_imds_v1_disabled = 'False'
         prov = providers.EcsRamRoleCredentialProvider("roleName")
         self.assertIsNotNone(prov)
         self.assertEqual("roleName", prov.role_name)
-        self.assertFalse(prov.enable_imds_v2)
+        self.assertFalse(prov.disable_imds_v1)
 
-        auth_util.environment_ecs_meta_data_imds_v2_enable = '1'
+        auth_util.environment_imds_v1_disabled = '1'
         prov = providers.EcsRamRoleCredentialProvider("roleName")
         self.assertIsNotNone(prov)
         self.assertEqual("roleName", prov.role_name)
-        self.assertFalse(prov.enable_imds_v2)
+        self.assertFalse(prov.disable_imds_v1)
 
-        auth_util.environment_ecs_meta_data_imds_v2_enable = 'True'
+        auth_util.environment_imds_v1_disabled = 'True'
         prov = providers.EcsRamRoleCredentialProvider("roleName")
         self.assertIsNotNone(prov)
         self.assertEqual("roleName", prov.role_name)
-        self.assertTrue(prov.enable_imds_v2)
+        self.assertTrue(prov.disable_imds_v1)
 
-        auth_util.environment_ecs_meta_data_imds_v2_enable = None
+        auth_util.environment_imds_v1_disabled = None
 
         cfg = models.Config()
         cfg.role_name = "roleNameConfig"
@@ -79,28 +102,60 @@ class TestProviders(unittest.TestCase):
         self.assertIsNotNone(prov)
         self.assertEqual("roleNameConfig", prov.role_name)
         self.assertEqual(2300, prov.timeout)
+        token = prov._get_metadata_token(url='127.0.0.1:8888')
+        self.assertEqual('token', token)
+
         cred = prov._create_credential(url='127.0.0.1:8888')
         self.assertEqual('ak', cred.access_key_id)
 
         prov._get_role_name(url='http://127.0.0.1:8888')
         self.assertIsNotNone(prov.role_name)
 
-        cfg.enable_imds_v2 = True
-        cfg.metadata_token_duration = 180
+        # request error
+        token = prov._get_metadata_token(url='127.0.0.1:9999')
+        self.assertIsNone(token)
+        try:
+            prov._create_credential(url='127.0.0.1:9999')
+            self.fail()
+        except CredentialException as e:
+            self.assertEqual('Failed to get RAM session credentials from ECS metadata service. HttpCode=500', e.message)
+        try:
+            prov._get_role_name(url='http://127.0.0.1:9999')
+            self.fail()
+        except CredentialException as e:
+            self.assertEqual('Failed to get RAM session credentials from ECS metadata service. HttpCode=500', e.message)
+
+
+        cfg.disable_imds_v1 = True
         prov = providers.EcsRamRoleCredentialProvider(config=cfg)
         self.assertIsNotNone(prov)
-        self.assertTrue(prov.enable_imds_v2)
-        self.assertEqual(180, prov.metadata_token_duration)
+        self.assertTrue(prov.disable_imds_v1)
         self.assertEqual("roleNameConfig", prov.role_name)
         self.assertEqual(2300, prov.timeout)
         prov._get_metadata_token(url='127.0.0.1:8888')
         cred = prov._create_credential(url='127.0.0.1:8888')
-        self.assertEqual("token", getattr(prov, '_EcsRamRoleCredentialProvider__metadata_token'))
-        self.assertNotEqual(0, getattr(prov, '_EcsRamRoleCredentialProvider__stale_time'))
         self.assertEqual('ak', cred.access_key_id)
 
         prov._get_role_name(url='http://127.0.0.1:8888')
         self.assertIsNotNone(prov.role_name)
+
+        # request error
+        try:
+            prov._get_metadata_token(url='127.0.0.1:9999')
+            self.fail()
+        except CredentialException as e:
+            self.assertEqual('Failed to get token from ECS Metadata Service. HttpCode=500', e.message)
+        try:
+            prov._create_credential(url='127.0.0.1:9999')
+            self.fail()
+        except CredentialException as e:
+            self.assertEqual('Failed to get token from ECS Metadata Service. HttpCode=500', e.message)
+        try:
+            prov._get_role_name(url='http://127.0.0.1:9999')
+            self.fail()
+        except CredentialException as e:
+            self.assertEqual('Failed to get token from ECS Metadata Service. HttpCode=500', e.message)
+
 
     def test_EcsRamRoleCredentialProvider_async(self):
         async def main():
