@@ -9,6 +9,8 @@ class TestModel(unittest.TestCase):
         self.assertEqual('', conf1.access_key_secret)
         self.assertEqual('', conf1.role_name)
         self.assertEqual(1000, conf1.timeout)
+        self.assertEqual(1000, conf1.connect_timeout)
+        self.assertFalse(conf1.disable_imds_v1)
         self.assertIsNone(conf1.sts_endpoint)
 
         conf1.timeout = 0
