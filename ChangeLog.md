@@ -1,3 +1,6 @@
+### 2024-10-28 Version 0.3.6
+* Support IMDS v2 default for ecs ram role.
+
 ### 2024-07-31 Version 0.3.5
 * Support region or endpoint for sts requests.
 * Support user agent for credentials requests.

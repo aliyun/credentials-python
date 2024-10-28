@@ -123,7 +123,15 @@ cred_type = cred.get_type()
 
 #### ECS RAM Role
 
-By specifying the role name, the credential will be able to automatically request maintenance of STS Token.
+Both ECS and ECI instances support binding instance RAM roles. When the Credentials tool is used in an instance, the RAM role bound to the instance will be automatically obtained, and the STS Token of the RAM role will be obtained by accessing the metadata service to complete the initialization of the credential client.
+
+The instance metadata server supports two access modes: hardened mode and normal mode. The Credentials tool uses hardened mode (IMDSv2) by default to obtain access credentials. If an exception occurs when using hardened mode, you can set disable_imds_v1 to perform different exception handling logic:
+
+- When the value is false (default value), the normal mode will continue to be used to obtain access credentials.
+
+- When the value is true, it means that only hardened mode can be used to obtain access credentials, and an exception will be thrown.
+
+Whether the server supports IMDSv2 depends on your configuration on the server.
 
 ```python
 from alibabacloud_credentials.client import Client
@@ -132,7 +140,7 @@ from alibabacloud_credentials.models import Config
 config = Config(
     type='ecs_ram_role',      # credential type
     role_name='roleName',     # `role_name` is optional. It will be retrieved automatically if not set. It is highly recommended to set it up to reduce requests.
-    enable_imds_v2=True       # `enable_imds_v2` is optional and is recommended to be turned on. It can be replaced by setting environment variable: ALIBABA_CLOUD_ECS_IMDSV2_ENABLE
+    disable_imds_v1=True      # Optional, whether to forcibly disable IMDSv1, that is, to use IMDSv2 hardening mode, which can be set by the environment variable ALIBABA_CLOUD_IMDSV1_DISABLED
 )
 cred = Client(config)
 
@@ -250,7 +258,13 @@ The default credential provider chain looks for available credentials, with foll
 
 3. Instance RAM Role
 
-    If the environment variable `ALIBABA_CLOUD_ECS_METADATA` is defined and not empty, the program will take the value of the environment variable as the role name and request <http://100.100.100.200/latest/meta-data/ram/security-credentials/> to get the temporary Security credentials.
+   If there is no credential information with a higher priority, the Credentials tool will obtain the value of ALIBABA_CLOUD_ECS_METADATA (ECS instance RAM role name) through the environment variable. If the value of this variable exists, the program will use the hardened mode (IMDSv2) to access the metadata service (Meta Data Server) of ECS to obtain the STS Token of the ECS instance RAM role as the default credential information. If an exception occurs when using the hardened mode, the normal mode will be used as a fallback to obtain access credentials. You can also set the environment variable ALIBABA_CLOUD_IMDSV1_DISABLED to perform different exception handling logic:
+
+   - When the value is false, the normal mode will continue to obtain access credentials.
+
+   - When the value is true, it means that only the hardened mode can be used to obtain access credentials, and an exception will be thrown.
+
+   Whether the server supports IMDSv2 depends on your configuration on the server.
 
 4. Credentials URI
 
