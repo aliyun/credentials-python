@@ -9,8 +9,10 @@ from alibabacloud_credentials.utils import auth_constant as ac
 from alibabacloud_credentials.utils import parameter_helper as ph
 from alibabacloud_credentials.exceptions import CredentialException
 from alibabacloud_credentials.models import CredentialModel
+from Tea.decorators import deprecated
 
 
+@deprecated
 class Credential:
     def get_access_key_id(self):
         return
@@ -37,6 +39,7 @@ class Credential:
         return
 
 
+@deprecated
 class _AutomaticallyRefreshCredentials:
     def __init__(self, expiration, provider):
         self.expiration = expiration
@@ -62,6 +65,7 @@ class _AutomaticallyRefreshCredentials:
             return await self._get_new_credential_async()
 
 
+@deprecated
 class AccessKeyCredential(Credential):
     """AccessKeyCredential"""
 
@@ -117,6 +121,7 @@ class BearerTokenCredential(Credential):
         )
 
 
+@deprecated
 class EcsRamRoleCredential(Credential, _AutomaticallyRefreshCredentials):
     """EcsRamRoleCredential"""
 
@@ -186,6 +191,7 @@ class EcsRamRoleCredential(Credential, _AutomaticallyRefreshCredentials):
         )
 
 
+@deprecated
 class RamRoleArnCredential(Credential, _AutomaticallyRefreshCredentials):
     """RamRoleArnCredential"""
 
@@ -255,6 +261,7 @@ class RamRoleArnCredential(Credential, _AutomaticallyRefreshCredentials):
         )
 
 
+@deprecated
 class OIDCRoleArnCredential(Credential, _AutomaticallyRefreshCredentials):
     """OIDCRoleArnCredential"""
 
@@ -324,6 +331,7 @@ class OIDCRoleArnCredential(Credential, _AutomaticallyRefreshCredentials):
         )
 
 
+@deprecated
 class CredentialsURICredential(Credential):
     """CredentialsURICredential"""
 
@@ -516,6 +524,7 @@ class RsaKeyPairCredential(Credential, _AutomaticallyRefreshCredentials):
         )
 
 
+@deprecated
 class StsCredential(Credential):
     def __init__(self, access_key_id, access_key_secret, security_token):
         self.access_key_id = access_key_id

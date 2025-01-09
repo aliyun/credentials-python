@@ -1,6 +1,7 @@
 from functools import wraps
 
 from alibabacloud_credentials import credentials, providers, models
+from alibabacloud_credentials.providers import EcsRamRoleCredentialsProvider
 from alibabacloud_credentials.utils import auth_constant as ac
 from Tea.decorators import deprecated
 
