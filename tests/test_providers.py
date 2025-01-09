@@ -101,7 +101,7 @@ class TestProviders(unittest.TestCase):
         prov = providers.EcsRamRoleCredentialProvider(config=cfg)
         self.assertIsNotNone(prov)
         self.assertEqual("roleNameConfig", prov.role_name)
-        self.assertEqual(2300, prov.timeout)
+        self.assertEqual(1100, prov.timeout)
         token = prov._get_metadata_token(url='127.0.0.1:8888')
         self.assertEqual('token', token)
 
@@ -131,7 +131,7 @@ class TestProviders(unittest.TestCase):
         self.assertIsNotNone(prov)
         self.assertTrue(prov.disable_imds_v1)
         self.assertEqual("roleNameConfig", prov.role_name)
-        self.assertEqual(2300, prov.timeout)
+        self.assertEqual(1100, prov.timeout)
         prov._get_metadata_token(url='127.0.0.1:8888')
         cred = prov._create_credential(url='127.0.0.1:8888')
         self.assertEqual('ak', cred.access_key_id)
@@ -170,7 +170,7 @@ class TestProviders(unittest.TestCase):
             prov = providers.EcsRamRoleCredentialProvider(config=cfg)
             self.assertIsNotNone(prov)
             self.assertEqual("roleNameConfig", prov.role_name)
-            self.assertEqual(2300, prov.timeout)
+            self.assertEqual(1100, prov.timeout)
             cred = await prov._create_credential_async(url='127.0.0.1:8888')
             self.assertEqual('ak', cred.access_key_id)
 

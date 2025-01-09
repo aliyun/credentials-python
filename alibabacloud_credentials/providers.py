@@ -18,7 +18,7 @@ from alibabacloud_credentials.utils import parameter_helper as ph
 class AlibabaCloudCredentialsProvider:
     """BaseProvider class"""
     duration_seconds = 3600
-    timeout = 2000
+    timeout = 3000
 
     def __init__(self, config=None):
         if isinstance(config, Config):
@@ -36,8 +36,8 @@ class AlibabaCloudCredentialsProvider:
             self.bearer_token = config.bearer_token
             self.security_token = config.security_token
             self.host = config.host
-            self.timeout = config.timeout + config.connect_timeout
-            self.connect_timeout = config.connect_timeout
+            self.timeout = config.timeout or AlibabaCloudCredentialsProvider.timeout
+            self.connect_timeout = config.connect_timeout or AlibabaCloudCredentialsProvider.timeout
             self.proxy = config.proxy
             self.sts_endpoint = config.sts_endpoint
 
