@@ -116,6 +116,9 @@ class BearerTokenCredential(Credential):
             type=ac.BEARER
         )
 
+    def get_type(self) -> str:
+        return self.credential_type
+
 
 class EcsRamRoleCredential(Credential, _AutomaticallyRefreshCredentials):
     """EcsRamRoleCredential"""

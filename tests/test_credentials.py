@@ -1,6 +1,10 @@
 import unittest
-
+import json
+from unittest.mock import patch, MagicMock, AsyncMock
+import asyncio
 from alibabacloud_credentials import credentials, providers
+from alibabacloud_credentials.exceptions import CredentialException
+from Tea.core import TeaResponse
 
 
 class TestCredentials(unittest.TestCase):
@@ -21,8 +25,7 @@ class TestCredentials(unittest.TestCase):
 
     class TestRsaKeyPairProvider:
         def get_credentials(self):
-            return credentials.RsaKeyPairCredential("accessKeyId", "accessKeySecret", 100000000000,
-                                                    None)
+            return credentials.RsaKeyPairCredential("accessKeyId", "accessKeySecret", 100000000000, None)
 
     def test_EcsRamRoleCredential(self):
         provider = providers.EcsRamRoleCredentialProvider("roleName")
@@ -128,8 +131,8 @@ class TestCredentials(unittest.TestCase):
         self.assertEqual(100000000000, cred.expiration)
 
         self.assertEqual('accessKeyId', cred.get_access_key_id())
-        self.assertEqual('accessKeySecret', cred.access_key_secret)
-        self.assertEqual('securityToken', cred.security_token)
+        self.assertEqual('accessKeySecret', cred.get_access_key_secret())
+        self.assertEqual('securityToken', cred.get_security_token())
         self.assertEqual(100000000000, cred.expiration)
         self.assertEqual('ram_role_arn', cred.credential_type)
         self.assertIsInstance(cred.provider, self.TestRamRoleArnProvider)
@@ -173,8 +176,8 @@ class TestCredentials(unittest.TestCase):
         self.assertEqual(100000000000, cred.expiration)
 
         self.assertEqual('accessKeyId', cred.get_access_key_id())
-        self.assertEqual('accessKeySecret', cred.access_key_secret)
-        self.assertEqual('securityToken', cred.security_token)
+        self.assertEqual('accessKeySecret', cred.get_access_key_secret())
+        self.assertEqual('securityToken', cred.get_security_token())
         self.assertEqual(100000000000, cred.expiration)
         self.assertEqual('oidc_role_arn', cred.credential_type)
         self.assertIsInstance(cred.provider, self.TestOIDCRoleArnProvider)
@@ -215,7 +218,7 @@ class TestCredentials(unittest.TestCase):
         self.assertEqual(100000000000, cred.expiration)
 
         self.assertEqual('accessKeyId', cred.get_access_key_id())
-        self.assertEqual('accessKeySecret', cred.access_key_secret)
+        self.assertEqual('accessKeySecret', cred.get_access_key_secret())
         self.assertEqual(100000000000, cred.expiration)
 
     def test_CredentialsURICredential(self):
@@ -245,3 +248,212 @@ class TestCredentials(unittest.TestCase):
         self.assertEqual('access_key_secret', model.access_key_secret)
         self.assertEqual('security_token', model.security_token)
         self.assertEqual('sts', model.type)
+
+    def test_CredentialsURICredential_normal(self):
+        """
+        Test case 1: Successfully retrieves credentials from URI
+        """
+        response_body = json.dumps({
+            "Code": "Success",
+            "AccessKeyId": "test_access_key_id",
+            "AccessKeySecret": "test_access_key_secret",
+            "SecurityToken": "test_security_token",
+            "Expiration": "2023-12-31T23:59:59Z"
+        })
+        response = TeaResponse()
+        response.status_code = 200
+        response.body = response_body.encode('utf-8')
+
+        with patch('Tea.core.TeaCore.do_action', return_value=response):
+            credentials_uri = 'http://localhost:6666/test'
+            cred = credentials.CredentialsURICredential(credentials_uri)
+
+            model = cred.get_credential()
+            self.assertEqual('test_access_key_id', model.access_key_id)
+            self.assertEqual('test_access_key_secret', model.access_key_secret)
+            self.assertEqual('test_security_token', model.security_token)
+            self.assertEqual('credentials_uri', model.type)
+
+    def test_CredentialsURICredential_refresh(self):
+        """
+        Test case 2: Refreshes credentials when expired
+        """
+        response_body = json.dumps({
+            "Code": "Success",
+            "AccessKeyId": "test_access_key_id",
+            "AccessKeySecret": "test_access_key_secret",
+            "SecurityToken": "test_security_token",
+            "Expiration": "2023-12-31T23:59:59Z"
+        })
+        response = TeaResponse()
+        response.status_code = 200
+        response.body = response_body.encode('utf-8')
+
+        with patch('Tea.core.TeaCore.do_action', return_value=response):
+            credentials_uri = 'http://localhost:6666/test'
+            cred = credentials.CredentialsURICredential(credentials_uri)
+
+            # Set expiration to a past time to trigger refresh
+            cred.expiration = 1
+
+            model = cred.get_credential()
+            self.assertEqual('test_access_key_id', model.access_key_id)
+            self.assertEqual('test_access_key_secret', model.access_key_secret)
+            self.assertEqual('test_security_token', model.security_token)
+            self.assertEqual('credentials_uri', model.type)
+
+    def test_CredentialsURICredential_http_request_error(self):
+        """
+        Test case 3: HTTP request error raises CredentialException
+        """
+        response = TeaResponse()
+        response.status_code = 400
+        response.body = b'HTTP request failed'
+
+        with patch('Tea.core.TeaCore.do_action', return_value=response):
+            credentials_uri = 'http://localhost:6666/test'
+            cred = credentials.CredentialsURICredential(credentials_uri)
+
+            with self.assertRaises(CredentialException) as context:
+                cred.get_credential()
+
+            self.assertIn(
+                "Get credentials from http://localhost:6666/test failed,  HttpCode=400",
+                str(context.exception))
+
+    def test_CredentialsURICredential_response_format_error(self):
+        """
+        Test case 4: Response format error raises CredentialException
+        """
+        response_body = json.dumps({
+            "Code": "Failure",
+            "Message": "Invalid request"
+        })
+        response = TeaResponse()
+        response.status_code = 200
+        response.body = response_body.encode('utf-8')
+
+        with patch('Tea.core.TeaCore.do_action', return_value=response):
+            credentials_uri = 'http://localhost:6666/test'
+            cred = credentials.CredentialsURICredential(credentials_uri)
+
+            with self.assertRaises(CredentialException) as context:
+                cred.get_credential()
+
+            self.assertIn(
+                "Get credentials from http://localhost:6666/test failed,  Code is Failure",
+                str(context.exception))
+
+    def test_CredentialsURICredential_async_normal(self):
+        """
+        Test case 5: Successfully retrieves credentials from URI asynchronously
+        """
+        response_body = json.dumps({
+            "Code": "Success",
+            "AccessKeyId": "test_access_key_id",
+            "AccessKeySecret": "test_access_key_secret",
+            "SecurityToken": "test_security_token",
+            "Expiration": "2023-12-31T23:59:59Z"
+        })
+        response = TeaResponse()
+        response.status_code = 200
+        response.body = response_body.encode('utf-8')
+
+        with patch('Tea.core.TeaCore.async_do_action', AsyncMock(return_value=response)):
+            credentials_uri = 'http://localhost:6666/test'
+            cred = credentials.CredentialsURICredential(credentials_uri)
+
+            loop = asyncio.get_event_loop()
+            task = asyncio.ensure_future(
+                cred.get_credential_async()
+            )
+            loop.run_until_complete(task)
+            model = task.result()
+
+            self.assertEqual('test_access_key_id', model.access_key_id)
+            self.assertEqual('test_access_key_secret', model.access_key_secret)
+            self.assertEqual('test_security_token', model.security_token)
+            self.assertEqual('credentials_uri', model.type)
+
+    def test_CredentialsURICredential_async_refresh(self):
+        """
+        Test case 6: Refreshes credentials when expired
+        """
+        response_body = json.dumps({
+            "Code": "Success",
+            "AccessKeyId": "test_access_key_id",
+            "AccessKeySecret": "test_access_key_secret",
+            "SecurityToken": "test_security_token",
+            "Expiration": "2023-12-31T23:59:59Z"
+        })
+        response = TeaResponse()
+        response.status_code = 200
+        response.body = response_body.encode('utf-8')
+
+        with patch('Tea.core.TeaCore.async_do_action', AsyncMock(return_value=response)):
+            credentials_uri = 'http://localhost:6666/test'
+            cred = credentials.CredentialsURICredential(credentials_uri)
+
+            # Set expiration to a past time to trigger refresh
+            cred.expiration = 1
+
+            loop = asyncio.get_event_loop()
+            task = asyncio.ensure_future(
+                cred.get_credential_async()
+            )
+            loop.run_until_complete(task)
+            model = task.result()
+            self.assertEqual('test_access_key_id', model.access_key_id)
+            self.assertEqual('test_access_key_secret', model.access_key_secret)
+            self.assertEqual('test_security_token', model.security_token)
+            self.assertEqual('credentials_uri', model.type)
+
+    def test_CredentialsURICredential_async_http_request_error(self):
+        """
+        Test case 7: HTTP request error raises CredentialException
+        """
+        response = TeaResponse()
+        response.status_code = 400
+        response.body = b'HTTP request failed'
+
+        with patch('Tea.core.TeaCore.async_do_action', AsyncMock(return_value=response)):
+            credentials_uri = 'http://localhost:6666/test'
+            cred = credentials.CredentialsURICredential(credentials_uri)
+
+            with self.assertRaises(CredentialException) as context:
+                loop = asyncio.get_event_loop()
+                task = asyncio.ensure_future(
+                    cred.get_credential_async()
+                )
+                loop.run_until_complete(task)
+
+            self.assertIn(
+                "Get credentials from http://localhost:6666/test failed,  HttpCode=400",
+                str(context.exception))
+
+    def test_CredentialsURICredential_async_response_format_error(self):
+        """
+        Test case 8: Response format error raises CredentialException
+        """
+        response_body = json.dumps({
+            "Code": "Failure",
+            "Message": "Invalid request"
+        })
+        response = TeaResponse()
+        response.status_code = 200
+        response.body = response_body.encode('utf-8')
+
+        with patch('Tea.core.TeaCore.async_do_action', AsyncMock(return_value=response)):
+            credentials_uri = 'http://localhost:6666/test'
+            cred = credentials.CredentialsURICredential(credentials_uri)
+
+            with self.assertRaises(CredentialException) as context:
+                loop = asyncio.get_event_loop()
+                task = asyncio.ensure_future(
+                    cred.get_credential_async()
+                )
+                loop.run_until_complete(task)
+
+            self.assertIn(
+                "Get credentials from http://localhost:6666/test failed,  Code is Failure",
+                str(context.exception))
