@@ -29,7 +29,7 @@ class CLIProfileCredentialsProvider(ICredentialsProvider):
 
     def __init__(self, *,
                  profile_name: str = None):
-        self._profile_file = os.path.join(ac.HOME, "/.aliyun/config.json")
+        self._profile_file = os.path.join(ac.HOME, ".aliyun/config.json")
         self._profile_name = profile_name or au.environment_profile_name
         self.__innerProvider = None
 

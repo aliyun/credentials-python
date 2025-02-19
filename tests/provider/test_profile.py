@@ -14,7 +14,7 @@ class TestProfileCredentialsProvider(unittest.TestCase):
 
     def setUp(self):
         self.profile_name = "default"
-        self.profile_file = os.path.join(ac.HOME, "/.alibabacloud/credentials.ini")
+        self.profile_file = os.path.join(ac.HOME, ".alibabacloud/credentials.ini")
         self.config = {'default': {
             'type': 'access_key',
             'access_key_id': 'test_access_key_id',

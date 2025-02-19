@@ -46,7 +46,7 @@ def _load_ini(file_path: str) -> Dict[str, Dict[str, str]]:
 
 
 def _get_default_file() -> str:
-    return os.path.join(ac.HOME, "/.alibabacloud/credentials.ini")
+    return os.path.join(ac.HOME, ".alibabacloud/credentials.ini")
 
 
 class ProfileCredentialsProvider(ICredentialsProvider):

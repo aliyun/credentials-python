@@ -22,7 +22,7 @@ class TestCLIProfileCredentialsProvider(unittest.TestCase):
 
     def setUp(self):
         self.profile_name = "test_profile"
-        self.profile_file = os.path.join(ac.HOME, "/.aliyun/config.json")
+        self.profile_file = os.path.join(ac.HOME, ".aliyun/config.json")
         self.config = {
             "current": "test_profile",
             "profiles": [
@@ -95,7 +95,7 @@ class TestCLIProfileCredentialsProvider(unittest.TestCase):
             provider = CLIProfileCredentialsProvider()
 
             self.assertEqual(provider._profile_name, self.profile_name)
-            self.assertEqual(provider._profile_file, os.path.join(ac.HOME, "/.aliyun/config.json"))
+            self.assertEqual(provider._profile_file, os.path.join(ac.HOME, ".aliyun/config.json"))
 
     def test_get_credentials_valid_ak(self):
         """
