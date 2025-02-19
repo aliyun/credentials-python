@@ -1,3 +1,6 @@
+### 2025-02-19 Version 1.0rc2
+* Fix credentials profiles path.
+
 ### 2025-02-19 Version 1.0rc1
 * Refactor all credentials providers
 * Dropped support for Python 3.6.
