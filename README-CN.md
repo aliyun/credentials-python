@@ -8,6 +8,10 @@
 [![Python Test](https://github.com/aliyun/credentials-python/actions/workflows/testPython.yml/badge.svg)](https://github.com/aliyun/credentials-python/actions/workflows/testPython.yml)
 [![codecov](https://codecov.io/gh/aliyun/credentials-python/graph/badge.svg?token=Y0J1E7T35I)](https://codecov.io/gh/aliyun/credentials-python)
 
+## 重要的更新
+
+- `alibabacloud-credentials` 包版本从 1.0rc1 开始，仅支持 Python 3.7 及以上的环境。
+
 ## 安装
 
 - **使用 pip 安装(推荐)**
