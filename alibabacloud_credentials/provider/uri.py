@@ -54,7 +54,7 @@ class URLCredentialsProvider(ICredentialsProvider):
         tea_request = ph.get_new_request()
         tea_request.headers['host'] = r.hostname
         tea_request.port = r.port
-        tea_request.protocol = self._protocol
+        tea_request.protocol = r.scheme or self._protocol or 'http'
         tea_request.method = 'GET'
         tea_request.pathname = r.path
         for key, values in parse_qs(r.query).items():

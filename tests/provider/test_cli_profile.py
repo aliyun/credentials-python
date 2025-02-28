@@ -231,6 +231,18 @@ class TestCLIProfileCredentialsProvider(unittest.TestCase):
 
             self.assertIn("cli credentials file is disabled", str(context.exception))
 
+    def test_get_credentials_profile_name_not_exists(self):
+        """
+        Test case 8: Profile file does not exist raises CredentialException
+        """
+        with patch('alibabacloud_credentials.provider.cli_profile.au.environment_cli_profile_disabled', 'False'):
+            provider = CLIProfileCredentialsProvider(profile_name='not_exists')
+
+            with self.assertRaises(CredentialException) as context:
+                provider.get_credentials()
+
+            self.assertIn(f"unable to get profile with 'not_exists' form cli credentials file.", str(context.exception))
+
     def test_get_credentials_profile_file_not_exists(self):
         """
         Test case 8: Profile file does not exist raises CredentialException
