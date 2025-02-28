@@ -1,3 +1,6 @@
+### 2025-02-28 Version 1.0rc3
+* Fix some bugs.
+
 ### 2025-02-19 Version 1.0rc2
 * Fix credentials profiles path.
 
