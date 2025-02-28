@@ -160,5 +160,7 @@ class CLIProfileCredentialsProvider(ICredentialsProvider):
                 else:
                     raise CredentialException(f"unsupported profile mode '{mode}' form cli credentials file.")
 
+        raise CredentialException(f"unable to get profile with '{profile_name}' form cli credentials file.")
+
     def get_provider_name(self) -> str:
         return 'cli_profile'
