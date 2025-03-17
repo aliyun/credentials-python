@@ -71,8 +71,6 @@ class Config(TeaModel):
         #### ECS RAM Role Type
         - `role_name` (str): Role name.
         - `disable_imds_v1` (bool, optional): Whether to disable IMDS v1. Default is `False`.
-        - `enable_imds_v2` (bool, optional): Whether to enable IMDS v2. Default is `None`.
-        - `metadata_token_duration` (int, optional): Metadata token expiration time in seconds. Default is `None`.
 
         #### Credentials URI Type
         - `credentials_uri` (str): Credentials URI.
