@@ -1,3 +1,6 @@
+### 2025-03-17 Version 1.0rc4
+* Remove internal function calls.
+
 ### 2025-02-28 Version 1.0rc3
 * Fix some bugs.
 
