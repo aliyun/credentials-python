@@ -1,3 +1,8 @@
+### 2025-04-08 Version 1.0.0
+* Refactor all credentials providers.
+* Dropped support for Python 3.6.
+* Update dependencies.
+
 ### 2025-03-17 Version 1.0rc4
 * Remove internal function calls.
 
@@ -8,7 +13,7 @@
 * Fix credentials profiles path.
 
 ### 2025-02-19 Version 1.0rc1
-* Refactor all credentials providers
+* Refactor all credentials providers.
 * Dropped support for Python 3.6.
 
 ### 2024-10-28 Version 0.3.6

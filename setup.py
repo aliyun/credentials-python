@@ -41,9 +41,10 @@ install_requires = [
     'alibabacloud_credentials_api>=1.0.0, <2.0.0'
 ]
 
-if sys.version_info.minor <= 7:
+if sys.version_info.minor <= 8:
     install_requires.append('APScheduler>=3.10.0, <3.11.0')
     install_requires.append('aiofiles>=22.1.0, <24.0.0')
+    install_requires.append('tzlocal<5.3')
 else:
     install_requires.append('APScheduler>=3.10.0, <4.0.0')
     install_requires.append('aiofiles>=22.1.0, <25.0.0')
