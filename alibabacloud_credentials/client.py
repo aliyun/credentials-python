@@ -92,7 +92,7 @@ class Client:
                  config: Config = None,
                  provider: ICredentialsProvider = None):
         if provider is not None:
-            self.cloud_credential = _CredentialsProviderWrap(provider=provider)
+            self.cloud_credential = _CredentialsProviderWrap(type_name=provider.get_provider_name(), provider=provider)
         elif config is None:
             provider = DefaultCredentialsProvider()
             self.cloud_credential = _CredentialsProviderWrap(type_name='default', provider=provider)

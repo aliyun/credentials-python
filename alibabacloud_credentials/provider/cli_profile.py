@@ -5,7 +5,7 @@ from typing import Any, Dict
 import aiofiles
 
 from alibabacloud_credentials.provider import StaticAKCredentialsProvider, EcsRamRoleCredentialsProvider, \
-    RamRoleArnCredentialsProvider, OIDCRoleArnCredentialsProvider, RsaKeyPairCredentialsProvider
+    RamRoleArnCredentialsProvider, OIDCRoleArnCredentialsProvider, StaticSTSCredentialsProvider
 from .refreshable import Credentials
 from alibabacloud_credentials_api import ICredentialsProvider
 from alibabacloud_credentials.utils import auth_constant as ac
@@ -114,6 +114,12 @@ class CLIProfileCredentialsProvider(ICredentialsProvider):
                     return StaticAKCredentialsProvider(
                         access_key_id=profile.get('access_key_id'),
                         access_key_secret=profile.get('access_key_secret')
+                    )
+                elif mode == "StsToken":
+                    return StaticSTSCredentialsProvider(
+                        access_key_id=profile.get('access_key_id'),
+                        access_key_secret=profile.get('access_key_secret'),
+                        security_token=profile.get('sts_token')
                     )
                 elif mode == "RamRoleArn":
                     pre_provider = StaticAKCredentialsProvider(
