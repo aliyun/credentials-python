@@ -33,6 +33,13 @@ class TestCLIProfileCredentialsProvider(unittest.TestCase):
                     "access_key_secret": "test_access_key_secret"
                 },
                 {
+                    "name": "sts_token",
+                    "mode": "StsToken",
+                    "access_key_id": "test_access_key_id",
+                    "access_key_secret": "test_access_key_secret",
+                    "sts_token": "test_security_token"
+                },
+                {
                     "name": "ram_role_profile",
                     "mode": "RamRoleArn",
                     "access_key_id": "test_access_key_id",
@@ -113,6 +120,23 @@ class TestCLIProfileCredentialsProvider(unittest.TestCase):
                         self.assertEqual(credentials.get_access_key_secret(), self.access_key_secret)
                         self.assertIsNone(credentials.get_security_token())
                         self.assertEqual(credentials.get_provider_name(), "cli_profile/static_ak")
+
+    def test_get_credentials_valid_sts(self):
+        """
+        Test case 2: Valid input, successfully retrieves credentials for StsToken mode
+        """
+        with patch('alibabacloud_credentials.provider.cli_profile.au.environment_cli_profile_disabled', 'False'):
+            with patch('os.path.exists', return_value=True):
+                with patch('os.path.isfile', return_value=True):
+                    with patch('alibabacloud_credentials.provider.cli_profile._load_config', return_value=self.config):
+                        provider = CLIProfileCredentialsProvider(profile_name='sts_token')
+
+                        credentials = provider.get_credentials()
+
+                        self.assertEqual(credentials.get_access_key_id(), self.access_key_id)
+                        self.assertEqual(credentials.get_access_key_secret(), self.access_key_secret)
+                        self.assertEqual(credentials.get_security_token(), self.security_token)
+                        self.assertEqual(credentials.get_provider_name(), "cli_profile/static_sts")
 
     def test_get_credentials_valid_ram_role_arn(self):
         """

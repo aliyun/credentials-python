@@ -14,8 +14,8 @@ from alibabacloud_credentials.utils import auth_util as au
 from alibabacloud_credentials.utils import parameter_helper as ph
 from alibabacloud_credentials.exceptions import CredentialException
 
-logging.basicConfig(level=logging.DEBUG)
 log = logging.getLogger(__name__)
+log.setLevel(logging.DEBUG)
 
 
 class EcsRamRoleCredentialsProvider(ICredentialsProvider):
