@@ -1,3 +1,7 @@
+### 2025-04-18 Version 1.0.1
+* Support StsToken mode in cli profile.
+* Remove basic level for logging.
+
 ### 2025-04-08 Version 1.0.0
 * Refactor all credentials providers.
 * Dropped support for Python 3.6.
