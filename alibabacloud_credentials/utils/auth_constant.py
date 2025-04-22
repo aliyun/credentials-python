@@ -1,6 +1,7 @@
-import os
+from alibabacloud_credentials.utils import auth_util
 
-HOME = os.getenv('HOME') if os.getenv('HOME') else os.getenv('HOMEPATH')
+HOME = auth_util.get_home()
+
 INI_ACCESS_KEY_ID = "access_key_id"
 INI_ACCESS_KEY_IDSECRET = "access_key_secret"
 INI_TYPE = "type"

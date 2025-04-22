@@ -1,4 +1,6 @@
 import os
+import platform
+import re
 
 client_type = os.environ.get('ALIBABA_CLOUD_PROFILE', 'default')
 
@@ -35,3 +37,19 @@ def get_private_key(file_path):
     with open(file_path, encoding='utf-8') as f:
         key = f.read()
     return key
+
+
+def get_home():
+    if platform.system() == 'Windows':
+        home = os.getenv('HOME')
+        home_path = os.getenv('HOMEPATH')
+        home_drive = os.getenv('HOMEDRIVE')
+        if home:
+            return home
+        elif home_path:
+            has_drive_in_home_path = bool(re.match(r'^[A-Za-z]:', home_path))
+            return home_path if has_drive_in_home_path else os.path.join(home_drive or '', home_path)
+        else:
+            return os.path.expanduser("~")
+    else:
+        return os.getenv('HOME') or os.getenv('HOMEPATH') or os.path.expanduser("~")
