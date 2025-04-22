@@ -1,8 +1,11 @@
-from alibabacloud_credentials.utils import auth_util, parameter_helper
+from alibabacloud_credentials.utils import auth_util, parameter_helper, auth_constant
 
+import os
 import unittest
+from unittest.mock import patch
 import re
 from . import txt_file
+import platform
 
 
 class TestUtil(unittest.TestCase):
@@ -52,3 +55,46 @@ class TestUtil(unittest.TestCase):
         test_sign_string(self)
         test_compose_url(self)
         test_get_new_request(self)
+
+    def test_home(self):
+        @patch.dict(os.environ, {'HOME': '/mock/home/linux'})
+        def test_home_exists():
+            """case1：HOME exists"""
+            assert auth_util.get_home() == '/mock/home/linux'
+
+        @patch.dict(os.environ, {'HOME': ''})
+        @patch.dict(os.environ, {'HOMEPATH': ''})
+        def test_home_empty():
+            """case2：HOME exists but empty"""
+            with patch('os.path.expanduser', return_value='/fallback'):
+                assert auth_util.get_home() == '/fallback'
+
+        @patch.dict(os.environ, {'HOME': ''})
+        @patch.dict(os.environ, {'HOMEPATH': '\\Users\\mockuser'})
+        @patch.dict(os.environ, {'HOMEDRIVE': 'C:'})
+        def test_home_path_and_drive_windows():
+            """case3：Windows HOMEPATH exists and HOMEDRIVE exists"""
+            if platform.system() == 'Windows':
+                assert auth_util.get_home() == 'C:\\Users\\mockuser'
+            else:
+                assert auth_util.get_home() == '\\Users\\mockuser'
+
+        @patch.dict(os.environ, {'HOME': ''})
+        @patch.dict(os.environ, {'HOMEPATH': 'D:\\Users\\mockuser'})
+        @patch.dict(os.environ, {'HOMEDRIVE': 'C:'})
+        def test_home_path_windows():
+            """case4：Windows HOMEPATH exists"""
+            assert auth_util.get_home() == 'D:\\Users\\mockuser'
+
+        def test_real_system():
+            """case5：test real system"""
+            assert auth_constant.HOME
+            assert os.path.exists(auth_constant.HOME)
+            assert auth_constant.HOME == os.path.expanduser('~')
+            assert auth_util.get_home() == os.path.expanduser('~')
+
+        test_home_exists()
+        test_home_empty()
+        test_home_path_and_drive_windows()
+        test_home_path_windows()
+        test_real_system()
