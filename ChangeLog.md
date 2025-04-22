@@ -1,3 +1,6 @@
+### 2025-04-22 Version 1.0.2rc1
+* Resolve home path in all environments.
+
 ### 2025-04-18 Version 1.0.1
 * Support StsToken mode in cli profile.
 * Remove basic level for logging.
