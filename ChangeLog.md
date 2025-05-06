@@ -1,3 +1,7 @@
+### 2025-05-06 Version 1.0.2
+* Resolve home path in all environments.
+* Resolve loop in synchronously function.
+
 ### 2025-04-22 Version 1.0.2rc1
 * Resolve home path in all environments.
 
