@@ -1,9 +1,7 @@
 import unittest
 from unittest.mock import patch, MagicMock, AsyncMock
 import asyncio
-import threading
 import time
-from datetime import datetime
 from alibabacloud_credentials.provider.refreshable import (
     Credentials,
     RefreshResult,
