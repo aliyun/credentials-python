@@ -44,10 +44,10 @@ class URLCredentialsProvider(ICredentialsProvider):
         )
 
     def get_credentials(self) -> Credentials:
-        return self._credentials_cache()
+        return self._credentials_cache._sync_call()
 
     async def get_credentials_async(self) -> Credentials:
-        return await self._credentials_cache()
+        return await self._credentials_cache._async_call()
 
     def _refresh_credentials(self) -> RefreshResult[Credentials]:
         r = urlparse(self._uri)

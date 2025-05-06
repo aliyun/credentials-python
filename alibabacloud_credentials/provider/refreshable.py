@@ -161,13 +161,6 @@ class RefreshCachedSupplier(Generic[T]):
         self._consecutive_refresh_failures = 0
         self._cached_value = None
         self._refresh_lock = threading.Lock()
-        self._loop = asyncio.get_event_loop()
-
-    def __call__(self):
-        if self._loop.is_running():
-            return self._async_call()
-        else:
-            return self._sync_call()
 
     def _sync_call(self) -> T:
         if self._cache_is_stale():
