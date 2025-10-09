@@ -13,8 +13,10 @@ from concurrent.futures.thread import ThreadPoolExecutor
 from alibabacloud_credentials.exceptions import CredentialException
 from alibabacloud_credentials_api import ICredentials
 
-log = logging.getLogger(__name__)
+log = logging.getLogger('credentials')
 log.setLevel(logging.DEBUG)
+ch = logging.StreamHandler()
+log.addHandler(ch)
 
 T = TypeVar('T')
 INT64_MAX = 2 ** 63 - 1
