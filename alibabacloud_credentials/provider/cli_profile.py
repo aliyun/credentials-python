@@ -4,8 +4,12 @@ from typing import Any, Dict
 
 import aiofiles
 
-from alibabacloud_credentials.provider import StaticAKCredentialsProvider, EcsRamRoleCredentialsProvider, \
-    RamRoleArnCredentialsProvider, OIDCRoleArnCredentialsProvider, StaticSTSCredentialsProvider
+from .static_ak import StaticAKCredentialsProvider
+from .ecs_ram_role import EcsRamRoleCredentialsProvider
+from .ram_role_arn import RamRoleArnCredentialsProvider
+from .oidc import OIDCRoleArnCredentialsProvider
+from .static_sts import StaticSTSCredentialsProvider
+from .cloud_sso import CloudSSOCredentialsProvider
 from .refreshable import Credentials
 from alibabacloud_credentials_api import ICredentialsProvider
 from alibabacloud_credentials.utils import auth_constant as ac
@@ -162,6 +166,14 @@ class CLIProfileCredentialsProvider(ICredentialsProvider):
                         external_id=profile.get('external_id'),
                         sts_region_id=profile.get('sts_region'),
                         enable_vpc=profile.get('enable_vpc'),
+                    )
+                elif mode == "CloudSSO":
+                    return CloudSSOCredentialsProvider(
+                        sign_in_url=profile.get('cloud_sso_sign_in_url'),
+                        account_id=profile.get('cloud_sso_account_id'),
+                        access_config=profile.get('cloud_sso_access_config'),
+                        access_token=profile.get('access_token'),
+                        access_token_expire=profile.get('cloud_sso_access_token_expire'),
                     )
                 else:
                     raise CredentialException(f"unsupported profile mode '{mode}' form cli credentials file.")

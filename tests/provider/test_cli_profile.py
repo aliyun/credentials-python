@@ -3,6 +3,7 @@ from unittest.mock import patch, MagicMock, AsyncMock
 import asyncio
 import os
 import json
+import time
 from alibabacloud_credentials.provider.cli_profile import (
     CLIProfileCredentialsProvider,
     CredentialException,
@@ -13,7 +14,8 @@ from alibabacloud_credentials.provider import (
     StaticAKCredentialsProvider,
     RamRoleArnCredentialsProvider,
     EcsRamRoleCredentialsProvider,
-    OIDCRoleArnCredentialsProvider
+    OIDCRoleArnCredentialsProvider,
+    CloudSSOCredentialsProvider
 )
 from alibabacloud_credentials.utils import auth_constant as ac
 
@@ -80,6 +82,15 @@ class TestCLIProfileCredentialsProvider(unittest.TestCase):
                     "external_id": "test_external_id",
                     "sts_region": "test_sts_region",
                     "enable_vpc": True
+                },
+                {
+                    "name": "cloud_sso_profile",
+                    "mode": "CloudSSO",
+                    "cloud_sso_sign_in_url": "https://sso.example.com",
+                    "cloud_sso_account_id": "test_account_id",
+                    "cloud_sso_access_config": "test_access_config",
+                    "access_token": "test_access_token",
+                    "cloud_sso_access_token_expire": int(time.mktime(time.localtime())) + 1000
                 }
             ]
         }
@@ -243,9 +254,30 @@ class TestCLIProfileCredentialsProvider(unittest.TestCase):
                         self.assertEqual(credentials_provider._external_id, 'test_external_id')
                         self.assertEqual(credentials_provider._sts_endpoint, 'sts-vpc.test_sts_region.aliyuncs.com')
 
+    def test_get_credentials_valid_cloud_sso(self):
+        """
+        Test case 7: Valid input, successfully retrieves credentials for CloudSSO mode
+        """
+        with patch('alibabacloud_credentials.provider.cli_profile.au.environment_cli_profile_disabled', False):
+            with patch('os.path.exists', return_value=True):
+                with patch('os.path.isfile', return_value=True):
+                    with patch('alibabacloud_credentials.provider.cli_profile._load_config', return_value=self.config):
+                        provider = CLIProfileCredentialsProvider(profile_name="cloud_sso_profile")
+
+                        credentials_provider = provider._get_credentials_provider(config=self.config,
+                                                                                  profile_name="cloud_sso_profile")
+
+                        self.assertIsInstance(credentials_provider, CloudSSOCredentialsProvider)
+
+                        self.assertEqual(credentials_provider._sign_in_url, 'https://sso.example.com')
+                        self.assertEqual(credentials_provider._account_id, 'test_account_id')
+                        self.assertEqual(credentials_provider._access_config, 'test_access_config')
+                        self.assertEqual(credentials_provider._access_token, 'test_access_token')
+                        self.assertTrue(credentials_provider._access_token_expire > int(time.mktime(time.localtime())))
+
     def test_get_credentials_cli_profile_disabled(self):
         """
-        Test case 7: CLI profile disabled raises CredentialException
+        Test case 8: CLI profile disabled raises CredentialException
         """
         with patch('alibabacloud_credentials.provider.cli_profile.au.environment_cli_profile_disabled', 'True'):
             provider = CLIProfileCredentialsProvider(profile_name=self.profile_name)
@@ -257,7 +289,7 @@ class TestCLIProfileCredentialsProvider(unittest.TestCase):
 
     def test_get_credentials_profile_name_not_exists(self):
         """
-        Test case 8: Profile file does not exist raises CredentialException
+        Test case 9: Profile file does not exist raises CredentialException
         """
         with patch('alibabacloud_credentials.provider.cli_profile.au.environment_cli_profile_disabled', 'False'):
             provider = CLIProfileCredentialsProvider(profile_name='not_exists')
@@ -269,7 +301,7 @@ class TestCLIProfileCredentialsProvider(unittest.TestCase):
 
     def test_get_credentials_profile_file_not_exists(self):
         """
-        Test case 8: Profile file does not exist raises CredentialException
+        Test case 10: Profile file does not exist raises CredentialException
         """
         with patch('alibabacloud_credentials.provider.cli_profile.au.environment_cli_profile_disabled', 'False'):
             with patch('os.path.exists', return_value=False):
@@ -282,7 +314,7 @@ class TestCLIProfileCredentialsProvider(unittest.TestCase):
 
     def test_get_credentials_profile_file_not_file(self):
         """
-        Test case 9: Profile file is not a file raises CredentialException
+        Test case 11: Profile file is not a file raises CredentialException
         """
         with patch('alibabacloud_credentials.provider.cli_profile.au.environment_cli_profile_disabled', 'False'):
             with patch('os.path.exists', return_value=True):
@@ -296,7 +328,7 @@ class TestCLIProfileCredentialsProvider(unittest.TestCase):
 
     def test_get_credentials_invalid_json_format(self):
         """
-        Test case 10: Invalid JSON format in profile file raises CredentialException
+        Test case 12: Invalid JSON format in profile file raises CredentialException
         """
         with patch('alibabacloud_credentials.provider.cli_profile.au.environment_cli_profile_disabled', 'False'):
             with patch('os.path.exists', return_value=True):
@@ -313,7 +345,7 @@ class TestCLIProfileCredentialsProvider(unittest.TestCase):
 
     def test_get_credentials_empty_json(self):
         """
-        Test case 11: Empty JSON in profile file raises CredentialException
+        Test case 13: Empty JSON in profile file raises CredentialException
         """
         with patch('alibabacloud_credentials.provider.cli_profile.au.environment_cli_profile_disabled', 'False'):
             with patch('os.path.exists', return_value=True):
@@ -329,7 +361,7 @@ class TestCLIProfileCredentialsProvider(unittest.TestCase):
 
     def test_get_credentials_missing_profiles(self):
         """
-        Test case 12: Missing profiles in JSON raises CredentialException
+        Test case 14: Missing profiles in JSON raises CredentialException
         """
         with patch('alibabacloud_credentials.provider.cli_profile.au.environment_cli_profile_disabled', 'False'):
             with patch('os.path.exists', return_value=True):
@@ -346,7 +378,7 @@ class TestCLIProfileCredentialsProvider(unittest.TestCase):
 
     def test_get_credentials_invalid_profile_mode(self):
         """
-        Test case 13: Invalid profile mode raises CredentialException
+        Test case 15: Invalid profile mode raises CredentialException
         """
         invalid_config = {
             "current": "invalid_profile",
@@ -374,7 +406,7 @@ class TestCLIProfileCredentialsProvider(unittest.TestCase):
 
     def test_get_credentials_async_valid_ak(self):
         """
-        Test case 14: Valid input, successfully retrieves credentials for AK mode
+        Test case 16: Valid input, successfully retrieves credentials for AK mode
         """
         with patch('alibabacloud_credentials.provider.cli_profile.au.environment_cli_profile_disabled', 'False'):
             with patch('os.path.exists', return_value=True):
@@ -398,7 +430,7 @@ class TestCLIProfileCredentialsProvider(unittest.TestCase):
     @patch('builtins.open', new_callable=MagicMock)
     def test_load_config_file_not_found(self, mock_open):
         """
-        Test case 15: File not found raises FileNotFoundError
+        Test case 17: File not found raises FileNotFoundError
         """
         mock_open.side_effect = FileNotFoundError(f"No such file or directory: '{self.profile_file}'")
 
@@ -410,7 +442,7 @@ class TestCLIProfileCredentialsProvider(unittest.TestCase):
     @patch('builtins.open', new_callable=MagicMock)
     def test_load_config_invalid_json(self, mock_open):
         """
-        Test case 16: Invalid JSON format raises json.JSONDecodeError
+        Test case 18: Invalid JSON format raises json.JSONDecodeError
         """
         invalid_json = "invalid json content"
         mock_open.return_value.__enter__.return_value.read.return_value = invalid_json
