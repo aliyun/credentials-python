@@ -81,10 +81,12 @@ class TestOIDCRoleArnCredentialsProvider(unittest.TestCase):
         self.assertEqual(provider._runtime_options['readTimeout'], OIDCRoleArnCredentialsProvider.DEFAULT_READ_TIMEOUT)
         self.assertIsNone(provider._runtime_options['httpsProxy'])
 
-    def test_init_missing_role_arn(self):
+    @patch('alibabacloud_credentials.provider.oidc.au')
+    def test_init_missing_role_arn(self, mock_auth_util):
         """
         Test case 3: Missing role_arn raises ValueError
         """
+        mock_auth_util.environment_role_arn = None
         with self.assertRaises(ValueError) as context:
             OIDCRoleArnCredentialsProvider(
                 oidc_provider_arn=self.oidc_provider_arn,
@@ -93,10 +95,12 @@ class TestOIDCRoleArnCredentialsProvider(unittest.TestCase):
 
         self.assertIn("role_arn or environment variable ALIBABA_CLOUD_ROLE_ARN cannot be empty", str(context.exception))
 
-    def test_init_empty_role_arn(self):
+    @patch('alibabacloud_credentials.provider.oidc.au')
+    def test_init_empty_role_arn(self, mock_auth_util):
         """
         Test case 4: Empty role_arn raises ValueError
         """
+        mock_auth_util.environment_role_arn = None
         with self.assertRaises(ValueError) as context:
             OIDCRoleArnCredentialsProvider(
                 role_arn="",
@@ -106,10 +110,12 @@ class TestOIDCRoleArnCredentialsProvider(unittest.TestCase):
 
         self.assertIn("role_arn or environment variable ALIBABA_CLOUD_ROLE_ARN cannot be empty", str(context.exception))
 
-    def test_init_missing_oidc_provider_arn(self):
+    @patch('alibabacloud_credentials.provider.oidc.au')
+    def test_init_missing_oidc_provider_arn(self, mock_auth_util):
         """
         Test case 5: Missing oidc_provider_arn raises ValueError
         """
+        mock_auth_util.environment_oidc_provider_arn = None
         with self.assertRaises(ValueError) as context:
             OIDCRoleArnCredentialsProvider(
                 role_arn=self.role_arn,
@@ -119,10 +125,12 @@ class TestOIDCRoleArnCredentialsProvider(unittest.TestCase):
         self.assertIn("oidc_provider_arn or environment variable ALIBABA_CLOUD_OIDC_PROVIDER_ARN cannot be empty",
                       str(context.exception))
 
-    def test_init_empty_oidc_provider_arn(self):
+    @patch('alibabacloud_credentials.provider.oidc.au')
+    def test_init_empty_oidc_provider_arn(self, mock_auth_util):
         """
         Test case 6: Empty oidc_provider_arn raises ValueError
         """
+        mock_auth_util.environment_oidc_provider_arn = None
         with self.assertRaises(ValueError) as context:
             OIDCRoleArnCredentialsProvider(
                 role_arn=self.role_arn,
@@ -133,10 +141,12 @@ class TestOIDCRoleArnCredentialsProvider(unittest.TestCase):
         self.assertIn("oidc_provider_arn or environment variable ALIBABA_CLOUD_OIDC_PROVIDER_ARN cannot be empty",
                       str(context.exception))
 
-    def test_init_missing_oidc_token_file_path(self):
+    @patch('alibabacloud_credentials.provider.oidc.au')
+    def test_init_missing_oidc_token_file_path(self, mock_auth_util):
         """
         Test case 7: Missing oidc_token_file_path raises ValueError
         """
+        mock_auth_util.environment_oidc_token_file = None
         with self.assertRaises(ValueError) as context:
             OIDCRoleArnCredentialsProvider(
                 role_arn=self.role_arn,
@@ -146,10 +156,12 @@ class TestOIDCRoleArnCredentialsProvider(unittest.TestCase):
         self.assertIn("oidc_token_file_path or environment variable ALIBABA_CLOUD_OIDC_TOKEN_FILE cannot be empty",
                       str(context.exception))
 
-    def test_init_empty_oidc_token_file_path(self):
+    @patch('alibabacloud_credentials.provider.oidc.au')
+    def test_init_empty_oidc_token_file_path(self, mock_auth_util):
         """
         Test case 8: Empty oidc_token_file_path raises ValueError
         """
+        mock_auth_util.environment_oidc_token_file = None
         with self.assertRaises(ValueError) as context:
             OIDCRoleArnCredentialsProvider(
                 role_arn=self.role_arn,
@@ -358,12 +370,11 @@ class TestOIDCRoleArnCredentialsProvider(unittest.TestCase):
                     http_options=self.http_options
                 )
 
-                loop = asyncio.get_event_loop()
-                task = asyncio.ensure_future(
-                    provider._refresh_credentials_async()
-                )
-                loop.run_until_complete(task)
-                credentials = task.result()
+                # 使用 asyncio.run() 替代 get_event_loop()
+                async def run_test():
+                    return await provider._refresh_credentials_async()
+
+                credentials = asyncio.run(run_test())
 
                 self.assertEqual(credentials.value().get_access_key_id(), "test_access_key_id")
                 self.assertEqual(credentials.value().get_access_key_secret(), "test_access_key_secret")
@@ -373,11 +384,11 @@ class TestOIDCRoleArnCredentialsProvider(unittest.TestCase):
                 self.assertEqual(credentials.value().get_provider_name(), "oidc_role_arn")
 
                 with self.assertRaises(CredentialException) as context:
-                    loop = asyncio.get_event_loop()
-                    task = asyncio.ensure_future(
-                        provider.get_credentials_async()
-                    )
-                    loop.run_until_complete(task)
+                    # 使用 asyncio.run() 替代 get_event_loop()
+                    async def run_test():
+                        return await provider.get_credentials_async()
+                    
+                    asyncio.run(run_test())
 
                 self.assertIn("No cached value was found.", str(context.exception))
 
@@ -399,11 +410,11 @@ class TestOIDCRoleArnCredentialsProvider(unittest.TestCase):
             )
 
             with self.assertRaises(FileNotFoundError) as context:
-                loop = asyncio.get_event_loop()
-                task = asyncio.ensure_future(
-                    provider.get_credentials_async()
-                )
-                loop.run_until_complete(task)
+                # 使用 asyncio.run() 替代 get_event_loop()
+                async def run_test():
+                    return await provider.get_credentials_async()
+                
+                asyncio.run(run_test())
 
     def test_get_credentials_async_http_request_error(self):
         """
@@ -429,11 +440,11 @@ class TestOIDCRoleArnCredentialsProvider(unittest.TestCase):
                 )
 
                 with self.assertRaises(CredentialException) as context:
-                    loop = asyncio.get_event_loop()
-                    task = asyncio.ensure_future(
-                        provider.get_credentials_async()
-                    )
-                    loop.run_until_complete(task)
+                    # 使用 asyncio.run() 替代 get_event_loop()
+                    async def run_test():
+                        return await provider.get_credentials_async()
+                    
+                    asyncio.run(run_test())
 
                 self.assertIn(
                     "error refreshing credentials from oidc_role_arn, http_code: 400, result: HTTP request failed",
@@ -466,11 +477,11 @@ class TestOIDCRoleArnCredentialsProvider(unittest.TestCase):
                 )
 
                 with self.assertRaises(CredentialException) as context:
-                    loop = asyncio.get_event_loop()
-                    task = asyncio.ensure_future(
-                        provider.get_credentials_async()
-                    )
-                    loop.run_until_complete(task)
+                    # 使用 asyncio.run() 替代 get_event_loop()
+                    async def run_test():
+                        return await provider.get_credentials_async()
+                    
+                    asyncio.run(run_test())
 
                 self.assertIn('error retrieving credentials from oidc_role_arn result: {"Error": "Invalid request"}',
                               str(context.exception))

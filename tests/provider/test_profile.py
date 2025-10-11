@@ -107,13 +107,18 @@ class TestProfileCredentialsProvider(unittest.TestCase):
 
                         self.assertIn("error refreshing credentials from oidc_role_arn", str(context.exception))
 
-    def test_get_credentials_valid_ecs_ram_role(self):
+    @patch('Tea.core.TeaCore.do_action')
+    def test_get_credentials_valid_ecs_ram_role(self, mock_do_action):
         """
         Test case 5: Valid input, successfully retrieves credentials for ecs_ram_role type
         """
         with patch('os.path.exists', return_value=True):
             with patch('os.path.isfile', return_value=True):
                 with patch('alibabacloud_credentials.provider.profile._load_ini', return_value=self.config):
+                    mock_response = MagicMock()
+                    mock_response.status_code = 400
+                    mock_response.body = b'{"error": "Invalid"}'
+                    mock_do_action.return_value = mock_response
                     provider = ProfileCredentialsProvider(profile_name="ecs_ram_role_profile")
 
                     with self.assertRaises(CredentialException) as context:
@@ -223,7 +228,8 @@ class TestProfileCredentialsProvider(unittest.TestCase):
                     self.assertIn('the access key secret is empty',
                                   str(context.exception))
 
-    def test_get_credentials_missing_role_arn(self):
+    @patch('alibabacloud_credentials.provider.ram_role_arn.au')
+    def test_get_credentials_missing_role_arn(self, mock_au):
         """
         Test case 12: Missing role_arn raises CredentialException
         """
@@ -234,6 +240,7 @@ class TestProfileCredentialsProvider(unittest.TestCase):
             'role_session_name': 'test_ram_session_name',
             'policy': 'test_policy'
         }}
+        mock_au.environment_role_arn = None
         with patch('os.path.exists', return_value=True):
             with patch('os.path.isfile', return_value=True):
                 with patch('alibabacloud_credentials.provider.profile._load_ini', return_value=missing_role_arn_config):
@@ -245,7 +252,8 @@ class TestProfileCredentialsProvider(unittest.TestCase):
                     self.assertIn('role_arn or environment variable ALIBABA_CLOUD_ROLE_ARN cannot be empty',
                                   str(context.exception))
 
-    def test_get_credentials_missing_oidc_provider_arn(self):
+    @patch('alibabacloud_credentials.provider.oidc.au')
+    def test_get_credentials_missing_oidc_provider_arn(self, mock_auth_util):
         """
         Test case 13: Missing oidc_provider_arn raises CredentialException
         """
@@ -256,6 +264,7 @@ class TestProfileCredentialsProvider(unittest.TestCase):
             'role_session_name': 'test_role_session_name',
             'policy': 'test_policy'
         }}
+        mock_auth_util.environment_oidc_provider_arn = None
         with patch('os.path.exists', return_value=True):
             with patch('os.path.isfile', return_value=True):
                 with patch('alibabacloud_credentials.provider.profile._load_ini',
@@ -269,7 +278,8 @@ class TestProfileCredentialsProvider(unittest.TestCase):
                         'oidc_provider_arn or environment variable ALIBABA_CLOUD_OIDC_PROVIDER_ARN cannot be empty',
                         str(context.exception))
 
-    def test_get_credentials_missing_oidc_token_file_path(self):
+    @patch('alibabacloud_credentials.provider.oidc.au')
+    def test_get_credentials_missing_oidc_token_file_path(self, mock_auth_util):
         """
         Test case 14: Missing oidc_token_file_path raises CredentialException
         """
@@ -280,6 +290,7 @@ class TestProfileCredentialsProvider(unittest.TestCase):
             'role_session_name': 'test_role_session_name',
             'policy': 'test_policy'
         }}
+        mock_auth_util.environment_oidc_token_file = None
         with patch('os.path.exists', return_value=True):
             with patch('os.path.isfile', return_value=True):
                 with patch('alibabacloud_credentials.provider.profile._load_ini',
@@ -293,7 +304,8 @@ class TestProfileCredentialsProvider(unittest.TestCase):
                         'oidc_token_file_path or environment variable ALIBABA_CLOUD_OIDC_TOKEN_FILE cannot be empty',
                         str(context.exception))
 
-    def test_get_credentials_missing_role_name(self):
+    @patch('Tea.core.TeaCore.do_action')
+    def test_get_credentials_missing_role_name(self, mock_do_action):
         """
         Test case 15: Missing role_name raises CredentialException
         """
@@ -304,6 +316,10 @@ class TestProfileCredentialsProvider(unittest.TestCase):
             with patch('os.path.isfile', return_value=True):
                 with patch('alibabacloud_credentials.provider.profile._load_ini',
                            return_value=missing_role_name_config):
+                    mock_response = MagicMock()
+                    mock_response.status_code = 400
+                    mock_response.body = b'{"error": "Invalid"}'
+                    mock_do_action.return_value = mock_response
                     provider = ProfileCredentialsProvider(profile_name="ecs_ram_role_profile")
 
                     with self.assertRaises(CredentialException) as context:
@@ -362,12 +378,11 @@ class TestProfileCredentialsProvider(unittest.TestCase):
                            AsyncMock(return_value=self.config)):
                     provider = ProfileCredentialsProvider(profile_name=self.profile_name)
 
-                    loop = asyncio.get_event_loop()
-                    task = asyncio.ensure_future(
-                        provider.get_credentials_async()
-                    )
-                    loop.run_until_complete(task)
-                    credentials = task.result()
+                    # 使用 asyncio.run() 替代 get_event_loop()
+                    async def run_test():
+                        return await provider.get_credentials_async()
+
+                    credentials = asyncio.run(run_test())
 
                     self.assertEqual(credentials.get_access_key_id(), self.access_key_id)
                     self.assertEqual(credentials.get_access_key_secret(), self.access_key_secret)

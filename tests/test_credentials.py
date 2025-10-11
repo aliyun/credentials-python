@@ -363,12 +363,10 @@ class TestCredentials(unittest.TestCase):
             credentials_uri = 'http://localhost:6666/test'
             cred = credentials.CredentialsURICredential(credentials_uri)
 
-            loop = asyncio.get_event_loop()
-            task = asyncio.ensure_future(
-                cred.get_credential_async()
-            )
-            loop.run_until_complete(task)
-            model = task.result()
+            async def run_test():
+                return await cred.get_credential_async()
+
+            model = asyncio.run(run_test())
 
             self.assertEqual('test_access_key_id', model.access_key_id)
             self.assertEqual('test_access_key_secret', model.access_key_secret)
@@ -397,12 +395,10 @@ class TestCredentials(unittest.TestCase):
             # Set expiration to a past time to trigger refresh
             cred.expiration = 1
 
-            loop = asyncio.get_event_loop()
-            task = asyncio.ensure_future(
-                cred.get_credential_async()
-            )
-            loop.run_until_complete(task)
-            model = task.result()
+            async def run_test():
+                return await cred.get_credential_async()
+
+            model = asyncio.run(run_test())
             self.assertEqual('test_access_key_id', model.access_key_id)
             self.assertEqual('test_access_key_secret', model.access_key_secret)
             self.assertEqual('test_security_token', model.security_token)
@@ -420,12 +416,11 @@ class TestCredentials(unittest.TestCase):
             credentials_uri = 'http://localhost:6666/test'
             cred = credentials.CredentialsURICredential(credentials_uri)
 
+            async def run_test():
+                return await cred.get_credential_async()
+
             with self.assertRaises(CredentialException) as context:
-                loop = asyncio.get_event_loop()
-                task = asyncio.ensure_future(
-                    cred.get_credential_async()
-                )
-                loop.run_until_complete(task)
+                asyncio.run(run_test())
 
             self.assertIn(
                 "Get credentials from http://localhost:6666/test failed,  HttpCode=400",
@@ -447,12 +442,11 @@ class TestCredentials(unittest.TestCase):
             credentials_uri = 'http://localhost:6666/test'
             cred = credentials.CredentialsURICredential(credentials_uri)
 
+            async def run_test():
+                return await cred.get_credential_async()
+
             with self.assertRaises(CredentialException) as context:
-                loop = asyncio.get_event_loop()
-                task = asyncio.ensure_future(
-                    cred.get_credential_async()
-                )
-                loop.run_until_complete(task)
+                asyncio.run(run_test())
 
             self.assertIn(
                 "Get credentials from http://localhost:6666/test failed,  Code is Failure",

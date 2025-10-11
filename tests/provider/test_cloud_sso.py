@@ -218,8 +218,8 @@ class TestCloudSSOCredentialsProvider(unittest.TestCase):
             credentials = await provider.get_credentials_async()
             return credentials
 
-        loop = asyncio.get_event_loop()
-        credentials = loop.run_until_complete(run_test())
+        # 使用 asyncio.run() 替代 get_event_loop()
+        credentials = asyncio.run(run_test())
 
         self.assertEqual(credentials.get_access_key_id(), self.access_key_id)
         self.assertEqual(credentials.get_access_key_secret(), self.access_key_secret)

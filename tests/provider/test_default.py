@@ -268,6 +268,14 @@ class TestDefaultCredentialsProvider(unittest.TestCase):
         env_provider.get_credentials = MagicMock(
             side_effect=CredentialException("EnvironmentVariableCredentialsProvider failed"))
 
+        oidc_provider = OIDCRoleArnCredentialsProvider(
+            role_arn='role_arn',
+            oidc_provider_arn='oidc_provider_arn',
+            oidc_token_file_path='oidc_token_file_path',
+        )
+        oidc_provider.get_credentials = MagicMock(
+            side_effect=CredentialException("OIDCRoleArnCredentialsProvider failed"))
+
         cli_provider = CLIProfileCredentialsProvider()
         cli_provider.get_credentials = MagicMock(
             side_effect=CredentialException("CLIProfileCredentialsProvider failed"))
@@ -285,21 +293,23 @@ class TestDefaultCredentialsProvider(unittest.TestCase):
 
         with patch('alibabacloud_credentials.provider.default.EnvironmentVariableCredentialsProvider',
                    return_value=env_provider):
-            with patch('alibabacloud_credentials.provider.default.CLIProfileCredentialsProvider',
-                       return_value=cli_provider):
-                with patch('alibabacloud_credentials.provider.default.ProfileCredentialsProvider',
-                           return_value=profile_provider):
-                    with patch('alibabacloud_credentials.provider.default.EcsRamRoleCredentialsProvider',
-                               return_value=ecs_provider):
-                        with patch('alibabacloud_credentials.provider.default.URLCredentialsProvider',
-                                   return_value=url_provider):
-                            provider = DefaultCredentialsProvider()
+            with patch('alibabacloud_credentials.provider.default.OIDCRoleArnCredentialsProvider',
+                       return_value=oidc_provider):
+                with patch('alibabacloud_credentials.provider.default.CLIProfileCredentialsProvider',
+                           return_value=cli_provider):
+                    with patch('alibabacloud_credentials.provider.default.ProfileCredentialsProvider',
+                               return_value=profile_provider):
+                        with patch('alibabacloud_credentials.provider.default.EcsRamRoleCredentialsProvider',
+                                   return_value=ecs_provider):
+                            with patch('alibabacloud_credentials.provider.default.URLCredentialsProvider',
+                                       return_value=url_provider):
+                                provider = DefaultCredentialsProvider()
 
-                            with self.assertRaises(CredentialException) as context:
-                                provider.get_credentials()
+                                with self.assertRaises(CredentialException) as context:
+                                    provider.get_credentials()
 
-                            self.assertIn("unable to load credentials from any of the providers in the chain",
-                                          str(context.exception))
+                                self.assertIn("unable to load credentials from any of the providers in the chain",
+                                              str(context.exception))
 
     @patch('alibabacloud_credentials.provider.default.au.enable_oidc_credential', False)
     @patch('alibabacloud_credentials.provider.default.au.environment_ecs_metadata_disabled', 'false')
@@ -315,12 +325,11 @@ class TestDefaultCredentialsProvider(unittest.TestCase):
                    return_value=env_provider):
             provider = DefaultCredentialsProvider()
 
-            loop = asyncio.get_event_loop()
-            task = asyncio.ensure_future(
-                provider.get_credentials_async()
-            )
-            loop.run_until_complete(task)
-            credentials = task.result()
+            # 使用 asyncio.run() 替代 get_event_loop()
+            async def run_test():
+                return await provider.get_credentials_async()
+
+            credentials = asyncio.run(run_test())
 
             self.assertEqual(credentials.get_access_key_id(), self.access_key_id)
             self.assertEqual(credentials.get_access_key_secret(), self.access_key_secret)
@@ -422,23 +431,21 @@ class TestDefaultCredentialsProvider(unittest.TestCase):
                 provider = DefaultCredentialsProvider()
 
                 # First call to get_credentials
-                loop = asyncio.get_event_loop()
-                task = asyncio.ensure_future(
-                    provider.get_credentials_async()
-                )
-                loop.run_until_complete(task)
-                credentials = task.result()
+                # 使用 asyncio.run() 替代 get_event_loop()
+                async def run_test():
+                    return await provider.get_credentials_async()
+
+                credentials = asyncio.run(run_test())
                 self.assertEqual(credentials.get_access_key_id(), self.access_key_id)
                 self.assertEqual(credentials.get_access_key_secret(), self.access_key_secret)
                 self.assertEqual(credentials.get_security_token(), self.security_token)
                 self.assertEqual(credentials.get_provider_name(), "default/test_provider")
 
                 # Second call to get_credentials should reuse the last provider
-                task = asyncio.ensure_future(
-                    provider.get_credentials_async()
-                )
-                loop.run_until_complete(task)
-                credentials = task.result()
+                async def run_test1():
+                    return await provider.get_credentials_async()
+
+                credentials = asyncio.run(run_test1())
                 self.assertEqual(credentials.get_access_key_id(), self.access_key_id)
                 self.assertEqual(credentials.get_access_key_secret(), self.access_key_secret)
                 self.assertEqual(credentials.get_security_token(), self.security_token)
@@ -468,23 +475,21 @@ class TestDefaultCredentialsProvider(unittest.TestCase):
                 provider = DefaultCredentialsProvider(reuse_last_provider_enabled=False)
 
                 # First call to get_credentials
-                loop = asyncio.get_event_loop()
-                task = asyncio.ensure_future(
-                    provider.get_credentials_async()
-                )
-                loop.run_until_complete(task)
-                credentials = task.result()
+                # 使用 asyncio.run() 替代 get_event_loop()
+                async def run_test():
+                    return await provider.get_credentials_async()
+
+                credentials = asyncio.run(run_test())
                 self.assertEqual(credentials.get_access_key_id(), self.access_key_id)
                 self.assertEqual(credentials.get_access_key_secret(), self.access_key_secret)
                 self.assertEqual(credentials.get_security_token(), self.security_token)
                 self.assertEqual(credentials.get_provider_name(), "default/test_provider")
 
                 # Second call to get_credentials should not reuse the last provider
-                task = asyncio.ensure_future(
-                    provider.get_credentials_async()
-                )
-                loop.run_until_complete(task)
-                credentials = task.result()
+                async def run_test1():
+                    return await provider.get_credentials_async()
+
+                credentials = asyncio.run(run_test1())
                 self.assertEqual(credentials.get_access_key_id(), self.access_key_id)
                 self.assertEqual(credentials.get_access_key_secret(), self.access_key_secret)
                 self.assertEqual(credentials.get_security_token(), self.security_token)

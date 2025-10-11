@@ -114,11 +114,11 @@ class TestNonBlocking(unittest.TestCase):
 
         action = AsyncMock()
 
-        loop = asyncio.get_event_loop()
-        task = asyncio.ensure_future(
-            self.non_blocking.prefetch_async(action)
-        )
-        loop.run_until_complete(task)
+        # 使用 asyncio.run() 替代 get_event_loop()
+        async def run_test():
+            return await self.non_blocking.prefetch_async(action)
+        
+        asyncio.run(run_test())
 
         mock_prefetch.assert_called_once()
 
@@ -145,11 +145,11 @@ class TestOneCallerBlocks(unittest.TestCase):
         """
         action = AsyncMock()
 
-        loop = asyncio.get_event_loop()
-        task = asyncio.ensure_future(
-            self.one_caller_blocks.prefetch_async(action)
-        )
-        loop.run_until_complete(task)
+        # 使用 asyncio.run() 替代 get_event_loop()
+        async def run_test():
+            return await self.one_caller_blocks.prefetch_async(action)
+        
+        asyncio.run(run_test())
 
         action.assert_called_once()
 
@@ -207,12 +207,11 @@ class TestRefreshCachedSupplier(unittest.TestCase):
         """
         self.refresh_cached_supplier._cached_value = self.refresh_result
 
-        loop = asyncio.get_event_loop()
-        task = asyncio.ensure_future(
-            self.refresh_cached_supplier._async_call()
-        )
-        loop.run_until_complete(task)
-        result = task.result()
+        # 使用 asyncio.run() 替代 get_event_loop()
+        async def run_test():
+            return await self.refresh_cached_supplier._async_call()
+
+        result = asyncio.run(run_test())
 
         self.assertEqual(result.get_access_key_id(), "test_access_key_id")
         self.refresh_callable_async.assert_not_called()
@@ -226,12 +225,11 @@ class TestRefreshCachedSupplier(unittest.TestCase):
         self.refresh_cached_supplier._cached_value._stale_time = int(time.mktime(time.localtime())) - 1800
         mock_refresh_cache_async.return_value = self.refresh_result
 
-        loop = asyncio.get_event_loop()
-        task = asyncio.ensure_future(
-            self.refresh_cached_supplier._async_call()
-        )
-        loop.run_until_complete(task)
-        result = task.result()
+        # 使用 asyncio.run() 替代 get_event_loop()
+        async def run_test():
+            return await self.refresh_cached_supplier._async_call()
+
+        result = asyncio.run(run_test())
 
         self.assertEqual(result.get_access_key_id(), "test_access_key_id")
         mock_refresh_cache_async.assert_called_once()
@@ -282,11 +280,11 @@ class TestRefreshCachedSupplier(unittest.TestCase):
         """
         self.refresh_cached_supplier._prefetch_strategy.prefetch_async = AsyncMock()
 
-        loop = asyncio.get_event_loop()
-        task = asyncio.ensure_future(
-            self.refresh_cached_supplier._prefetch_cache_async()
-        )
-        loop.run_until_complete(task)
+        # 使用 asyncio.run() 替代 get_event_loop()
+        async def run_test():
+            return await self.refresh_cached_supplier._prefetch_cache_async()
+        
+        asyncio.run(run_test())
 
         self.refresh_cached_supplier._prefetch_strategy.prefetch_async.assert_called_once_with(mock_refresh_cache)
 
@@ -297,12 +295,16 @@ class TestRefreshCachedSupplier(unittest.TestCase):
         """
         self.refresh_callable.return_value = self.refresh_result
         mock_handle_fetched_success.return_value = self.refresh_result
+        
+        # Mock the lock object
+        mock_lock = MagicMock()
+        self.refresh_cached_supplier._refresh_lock = mock_lock
 
         self.refresh_cached_supplier._refresh_cache()
 
         self.refresh_callable.assert_called_once()
         mock_handle_fetched_success.assert_called_once_with(self.refresh_result)
-        self.refresh_cached_supplier._refresh_lock.release.assert_called_once()
+        mock_lock.release.assert_called_once()
 
     @patch('alibabacloud_credentials.provider.refreshable.RefreshCachedSupplier._handle_fetched_failure')
     def test_refresh_cache_failure(self, mock_handle_fetched_failure):
@@ -325,32 +327,37 @@ class TestRefreshCachedSupplier(unittest.TestCase):
         self.refresh_callable_async.return_value = self.refresh_result
         mock_handle_fetched_success.return_value = self.refresh_result
 
-        loop = asyncio.get_event_loop()
-        task = asyncio.ensure_future(
-            self.refresh_cached_supplier._prefetch_cache_async()
-        )
-        loop.run_until_complete(task)
+        # 使用 asyncio.run() 替代 get_event_loop()
+        async def run_test():
+            return await self.refresh_cached_supplier._prefetch_cache_async()
+        
+        asyncio.run(run_test())
 
         self.refresh_callable_async.assert_called_once()
         mock_handle_fetched_success.assert_called_once_with(self.refresh_result)
 
     @patch('alibabacloud_credentials.provider.refreshable.RefreshCachedSupplier._handle_fetched_failure')
-    async def test_refresh_cache_async_failure(self, mock_handle_fetched_failure):
+    def test_refresh_cache_async_failure(self, mock_handle_fetched_failure):
         """
         Test case 20: Test refresh_cache_async method on failure
         """
-        self.refresh_callable_async.side_effect = Exception("Test exception")
+        test_exception = Exception("Test exception")
+        self.refresh_callable_async.side_effect = test_exception
         mock_handle_fetched_failure.return_value = self.refresh_result
+        
+        # Mock the lock object
+        mock_lock = MagicMock()
+        self.refresh_cached_supplier._refresh_lock = mock_lock
 
-        loop = asyncio.get_event_loop()
-        task = asyncio.ensure_future(
-            self.refresh_cached_supplier._refresh_cache_async()
-        )
-        loop.run_until_complete(task)
+        # 使用 asyncio.run() 替代 get_event_loop()
+        async def run_test():
+            return await self.refresh_cached_supplier._refresh_cache_async()
+        
+        asyncio.run(run_test())
 
         self.refresh_callable_async.assert_called_once()
-        mock_handle_fetched_failure.assert_called_once_with(Exception("Test exception"))
-        self.refresh_cached_supplier._refresh_lock.release.assert_called_once()
+        mock_handle_fetched_failure.assert_called_once_with(test_exception)
+        mock_lock.release.assert_called_once()
 
     def test_handle_fetched_success(self):
         """
