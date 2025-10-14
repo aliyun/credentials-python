@@ -1,3 +1,6 @@
+### 2025-10-14 Version 1.0.3
+* Update logger level.
+
 ### 2025-05-06 Version 1.0.2
 * Resolve home path in all environments.
 * Resolve loop in synchronously function.

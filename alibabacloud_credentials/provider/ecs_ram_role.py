@@ -15,7 +15,7 @@ from alibabacloud_credentials.utils import parameter_helper as ph
 from alibabacloud_credentials.exceptions import CredentialException
 
 log = logging.getLogger('credentials')
-log.setLevel(logging.DEBUG)
+log.setLevel(logging.INFO)
 ch = logging.StreamHandler()
 log.addHandler(ch)
 
