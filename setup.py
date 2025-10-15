@@ -16,6 +16,7 @@
 """
 
 import os
+import re
 import sys
 from setuptools import setup, find_packages
 
@@ -31,9 +32,18 @@ AUTHOR = "Alibaba Cloud"
 AUTHOR_EMAIL = "alibaba-cloud-sdk-dev-team@list.alibaba-inc.com"
 URL = "https://github.com/aliyun/credentials-python"
 TOPDIR = os.path.dirname(__file__) or "."
-VERSION = __import__(PACKAGE).__version__
 
-with open("README.md", encoding="utf-8") as fp:
+def read_version():
+    init_path = os.path.join(TOPDIR, PACKAGE, "__init__.py")
+    with open(init_path, encoding="utf-8") as f:
+        m = re.search(r'^__version__\s*=\s*[\'"]([^\'"]+)[\'"]', f.read(), re.M)
+        if not m:
+            raise RuntimeError("Cannot find __version__ in {}".format(os.path.relpath(init_path)))
+        return m.group(1)
+
+VERSION = read_version()
+
+with open(os.path.join(TOPDIR, "README.md"), encoding="utf-8") as fp:
     LONG_DESCRIPTION = fp.read()
 
 install_requires = [
