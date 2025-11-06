@@ -168,12 +168,11 @@ class TestURLCredentialsProvider(unittest.TestCase):
                 http_options=self.http_options
             )
 
-            loop = asyncio.get_event_loop()
-            task = asyncio.ensure_future(
-                provider._refresh_credentials_async()
-            )
-            loop.run_until_complete(task)
-            credentials = task.result()
+            # 使用 asyncio.run() 替代 get_event_loop()
+            async def run_test():
+                return await provider._refresh_credentials_async()
+
+            credentials = asyncio.run(run_test())
 
             self.assertEqual(credentials.value().get_access_key_id(), self.access_key_id)
             self.assertEqual(credentials.value().get_access_key_secret(), self.access_key_secret)
@@ -198,11 +197,11 @@ class TestURLCredentialsProvider(unittest.TestCase):
             )
 
             with self.assertRaises(CredentialException) as context:
-                loop = asyncio.get_event_loop()
-                task = asyncio.ensure_future(
-                    provider.get_credentials_async()
-                )
-                loop.run_until_complete(task)
+                # 使用 asyncio.run() 替代 get_event_loop()
+                async def run_test():
+                    return await provider.get_credentials_async()
+                
+                asyncio.run(run_test())
 
             self.assertIn(
                 f'error refreshing credentials from {self.uri},  http_code=400, result: HTTP request failed',
@@ -228,11 +227,11 @@ class TestURLCredentialsProvider(unittest.TestCase):
             )
 
             with self.assertRaises(CredentialException) as context:
-                loop = asyncio.get_event_loop()
-                task = asyncio.ensure_future(
-                    provider.get_credentials_async()
-                )
-                loop.run_until_complete(task)
+                # 使用 asyncio.run() 替代 get_event_loop()
+                async def run_test():
+                    return await provider.get_credentials_async()
+                
+                asyncio.run(run_test())
 
             self.assertIn(f'error retrieving credentials from {self.uri} result: {response_body}',
                           str(context.exception))

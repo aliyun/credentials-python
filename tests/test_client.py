@@ -93,17 +93,27 @@ class TestClient(unittest.TestCase):
             type='access_key'
         )
         client = Client(conf)
-        loop = asyncio.get_event_loop()
-        task = asyncio.ensure_future(client.get_security_token_async())
-        loop.run_until_complete(task)
-        self.assertIsNone(task.result())
-        task = asyncio.ensure_future(client.get_access_key_id_async())
-        loop.run_until_complete(task)
-        self.assertEqual('ak1', task.result())
-        task = asyncio.ensure_future(client.get_access_key_secret_async())
-        loop.run_until_complete(task)
-        self.assertEqual('sk1', task.result())
-        task = asyncio.ensure_future(client.get_credential_async())
-        loop.run_until_complete(task)
-        credential = task.result()
+
+        async def get_security_token_async():
+            return await client.get_security_token_async()
+
+        result = asyncio.run(get_security_token_async())
+        self.assertIsNone(result)
+
+        async def get_access_key_id_async():
+            return await client.get_access_key_id_async()
+
+        result = asyncio.run(get_access_key_id_async())
+        self.assertEqual('ak1', result)
+
+        async def get_access_key_secret_async():
+            return await client.get_access_key_secret_async()
+
+        result = asyncio.run(get_access_key_secret_async())
+        self.assertEqual('sk1', result)
+
+        async def get_credential_async():
+            return await client.get_credential_async()
+
+        credential = asyncio.run(get_credential_async())
         self.assertEqual('ak1', credential.access_key_id)

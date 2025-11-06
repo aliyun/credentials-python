@@ -186,12 +186,11 @@ class TestEcsRamRoleCredentialsProvider(unittest.TestCase):
                             http_options=self.http_options
                         )
 
-                        loop = asyncio.get_event_loop()
-                        task = asyncio.ensure_future(
-                            provider._refresh_credentials_async()
-                        )
-                        loop.run_until_complete(task)
-                        credentials = task.result()
+                        # 使用 asyncio.run() 替代 get_event_loop()
+                        async def run_test():
+                            return await provider._refresh_credentials_async()
+
+                        credentials = asyncio.run(run_test())
 
                         self.assertEqual(credentials.value().get_access_key_id(), self.access_key_id)
                         self.assertEqual(credentials.value().get_access_key_secret(), self.access_key_secret)
@@ -201,11 +200,11 @@ class TestEcsRamRoleCredentialsProvider(unittest.TestCase):
                         self.assertEqual(credentials.value().get_provider_name(), "ecs_ram_role")
 
                         with self.assertRaises(CredentialException) as context:
-                            loop = asyncio.get_event_loop()
-                            task = asyncio.ensure_future(
-                                provider.get_credentials_async()
-                            )
-                            loop.run_until_complete(task)
+                            # 使用 asyncio.run() 替代 get_event_loop()
+                            async def run_test():
+                                return await provider.get_credentials_async()
+
+                            asyncio.run(run_test())
 
                         self.assertIn("No cached value was found.", str(context.exception))
 
@@ -230,11 +229,11 @@ class TestEcsRamRoleCredentialsProvider(unittest.TestCase):
                         )
 
                         with self.assertRaises(CredentialException) as context:
-                            loop = asyncio.get_event_loop()
-                            task = asyncio.ensure_future(
-                                provider.get_credentials_async()
-                            )
-                            loop.run_until_complete(task)
+                            # 使用 asyncio.run() 替代 get_event_loop()
+                            async def run_test():
+                                return await provider.get_credentials_async()
+
+                            asyncio.run(run_test())
 
                         self.assertIn(
                             "Failed to get RAM session credentials from ECS metadata service. HttpCode=400",
@@ -265,11 +264,11 @@ class TestEcsRamRoleCredentialsProvider(unittest.TestCase):
                         )
 
                         with self.assertRaises(CredentialException) as context:
-                            loop = asyncio.get_event_loop()
-                            task = asyncio.ensure_future(
-                                provider.get_credentials_async()
-                            )
-                            loop.run_until_complete(task)
+                            # 使用 asyncio.run() 替代 get_event_loop()
+                            async def run_test():
+                                return await provider.get_credentials_async()
+
+                            asyncio.run(run_test())
 
                         self.assertIn('Failed to get RAM session credentials from ECS metadata service.',
                                       str(context.exception))
@@ -332,12 +331,11 @@ class TestEcsRamRoleCredentialsProvider(unittest.TestCase):
                     http_options=self.http_options
                 )
 
-                loop = asyncio.get_event_loop()
-                task = asyncio.ensure_future(
-                    provider._get_metadata_token_async()
-                )
-                loop.run_until_complete(task)
-                metadata_token = task.result()
+                # 使用 asyncio.run() 替代 get_event_loop()
+                async def run_test():
+                    return await provider._get_metadata_token_async()
+
+                metadata_token = asyncio.run(run_test())
 
                 self.assertEqual(metadata_token, self.metadata_token)
 
@@ -357,11 +355,11 @@ class TestEcsRamRoleCredentialsProvider(unittest.TestCase):
                 )
 
                 with self.assertRaises(CredentialException) as context:
-                    loop = asyncio.get_event_loop()
-                    task = asyncio.ensure_future(
-                        provider._get_metadata_token_async()
-                    )
-                    loop.run_until_complete(task)
+                    # 使用 asyncio.run() 替代 get_event_loop()
+                    async def run_test():
+                        return await provider._get_metadata_token_async()
+
+                    asyncio.run(run_test())
 
                 self.assertIn(
                     "Failed to get token from ECS Metadata Service. HttpCode=400",
@@ -428,12 +426,11 @@ class TestEcsRamRoleCredentialsProvider(unittest.TestCase):
                     http_options=self.http_options
                 )
 
-                loop = asyncio.get_event_loop()
-                task = asyncio.ensure_future(
-                    provider._get_role_name_async()
-                )
-                loop.run_until_complete(task)
-                role_name = task.result()
+                # 使用 asyncio.run() 替代 get_event_loop()
+                async def run_test():
+                    return await provider._get_role_name_async()
+
+                role_name = asyncio.run(run_test())
 
                 self.assertEqual(role_name, self.role_name)
 
@@ -454,11 +451,11 @@ class TestEcsRamRoleCredentialsProvider(unittest.TestCase):
                 )
 
                 with self.assertRaises(CredentialException) as context:
-                    loop = asyncio.get_event_loop()
-                    task = asyncio.ensure_future(
-                        provider._get_role_name_async()
-                    )
-                    loop.run_until_complete(task)
+                    # 使用 asyncio.run() 替代 get_event_loop()
+                    async def run_test():
+                        return await provider._get_role_name_async()
+
+                    asyncio.run(run_test())
 
                 self.assertIn(
                     "Failed to get RAM session credentials from ECS metadata service. HttpCode=400",

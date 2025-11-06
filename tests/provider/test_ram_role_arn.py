@@ -91,10 +91,12 @@ class TestRamRoleArnCredentialsProvider(unittest.TestCase):
         self.assertEqual(provider._runtime_options['readTimeout'], RamRoleArnCredentialsProvider.DEFAULT_READ_TIMEOUT)
         self.assertIsNone(provider._runtime_options['httpsProxy'])
 
-    def test_init_missing_role_arn(self):
+    @patch('alibabacloud_credentials.provider.ram_role_arn.au')
+    def test_init_missing_role_arn(self, mock_au):
         """
         Test case 3: Missing role_arn raises ValueError
         """
+        mock_au.environment_role_arn = None
         with self.assertRaises(ValueError) as context:
             RamRoleArnCredentialsProvider(
                 access_key_id=self.access_key_id,
@@ -104,10 +106,12 @@ class TestRamRoleArnCredentialsProvider(unittest.TestCase):
 
         self.assertIn("role_arn or environment variable ALIBABA_CLOUD_ROLE_ARN cannot be empty", str(context.exception))
 
-    def test_init_empty_role_arn(self):
+    @patch('alibabacloud_credentials.provider.ram_role_arn.au')
+    def test_init_empty_role_arn(self, mock_au):
         """
         Test case 4: Empty role_arn raises ValueError
         """
+        mock_au.environment_role_arn = None
         with self.assertRaises(ValueError) as context:
             RamRoleArnCredentialsProvider(
                 access_key_id=self.access_key_id,
@@ -301,12 +305,11 @@ class TestRamRoleArnCredentialsProvider(unittest.TestCase):
                 http_options=self.http_options
             )
 
-            loop = asyncio.get_event_loop()
-            task = asyncio.ensure_future(
-                provider._refresh_credentials_async()
-            )
-            loop.run_until_complete(task)
-            credentials = task.result()
+            # 使用 asyncio.run() 替代 get_event_loop()
+            async def run_test():
+                return await provider._refresh_credentials_async()
+
+            credentials = asyncio.run(run_test())
 
             self.assertEqual(credentials.value().get_access_key_id(), "test_access_key_id")
             self.assertEqual(credentials.value().get_access_key_secret(), "test_access_key_secret")
@@ -317,11 +320,11 @@ class TestRamRoleArnCredentialsProvider(unittest.TestCase):
             self.assertEqual(credentials.value().get_provider_name(), "ram_role_arn/static_sts")
 
             with self.assertRaises(CredentialException) as context:
-                loop = asyncio.get_event_loop()
-                task = asyncio.ensure_future(
-                    provider.get_credentials_async()
-                )
-                loop.run_until_complete(task)
+                # 使用 asyncio.run() 替代 get_event_loop()
+                async def run_test():
+                    return await provider.get_credentials_async()
+                
+                asyncio.run(run_test())
 
             self.assertIn("No cached value was found.", str(context.exception))
 
@@ -349,11 +352,11 @@ class TestRamRoleArnCredentialsProvider(unittest.TestCase):
             )
 
             with self.assertRaises(CredentialException) as context:
-                loop = asyncio.get_event_loop()
-                task = asyncio.ensure_future(
-                    provider.get_credentials_async()
-                )
-                loop.run_until_complete(task)
+                # 使用 asyncio.run() 替代 get_event_loop()
+                async def run_test():
+                    return await provider.get_credentials_async()
+                
+                asyncio.run(run_test())
 
             self.assertIn(
                 "error refreshing credentials from ram_role_arn, http_code: 400, result: HTTP request failed",
@@ -386,11 +389,11 @@ class TestRamRoleArnCredentialsProvider(unittest.TestCase):
             )
 
             with self.assertRaises(CredentialException) as context:
-                loop = asyncio.get_event_loop()
-                task = asyncio.ensure_future(
-                    provider.get_credentials_async()
-                )
-                loop.run_until_complete(task)
+                # 使用 asyncio.run() 替代 get_event_loop()
+                async def run_test():
+                    return await provider.get_credentials_async()
+                
+                asyncio.run(run_test())
 
             self.assertIn(
                 'error retrieving credentials from ram_role_arn result: {"Error": "Invalid request"}',

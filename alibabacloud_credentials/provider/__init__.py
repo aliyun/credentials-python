@@ -9,6 +9,8 @@ from .uri import URLCredentialsProvider
 from .cli_profile import CLIProfileCredentialsProvider
 from .profile import ProfileCredentialsProvider
 from .default import DefaultCredentialsProvider
+from .cloud_sso import CloudSSOCredentialsProvider
+from .oauth import OAuthCredentialsProvider
 
 __all__ = [
     'StaticAKCredentialsProvider',
@@ -21,5 +23,7 @@ __all__ = [
     'URLCredentialsProvider',
     'CLIProfileCredentialsProvider',
     'ProfileCredentialsProvider',
-    'DefaultCredentialsProvider'
+    'DefaultCredentialsProvider',
+    'CloudSSOCredentialsProvider',
+    'OAuthCredentialsProvider'
 ]

@@ -184,13 +184,11 @@ class TestStaticSTSCredentialsProvider(unittest.TestCase):
             security_token="test_security_token"
         )
 
-        # Use asyncio.run to execute the async function
-        loop = asyncio.get_event_loop()
-        task = asyncio.ensure_future(
-            provider.get_credentials_async()
-        )
-        loop.run_until_complete(task)
-        credentials = task.result()
+        # 使用 asyncio.run() 替代 get_event_loop()
+        async def run_test():
+            return await provider.get_credentials_async()
+
+        credentials = asyncio.run(run_test())
 
         self.assertEqual(credentials.get_access_key_id(), "test_access_key_id")
         self.assertEqual(credentials.get_access_key_secret(), "test_access_key_secret")
@@ -208,13 +206,11 @@ class TestStaticSTSCredentialsProvider(unittest.TestCase):
 
         provider = StaticSTSCredentialsProvider()
 
-        # Use asyncio.run to execute the async function
-        loop = asyncio.get_event_loop()
-        task = asyncio.ensure_future(
-            provider.get_credentials_async()
-        )
-        loop.run_until_complete(task)
-        credentials = task.result()
+        # 使用 asyncio.run() 替代 get_event_loop()
+        async def run_test():
+            return await provider.get_credentials_async()
+
+        credentials = asyncio.run(run_test())
 
         self.assertEqual(credentials.get_access_key_id(), "test_access_key_id")
         self.assertEqual(credentials.get_access_key_secret(), "test_access_key_secret")

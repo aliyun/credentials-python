@@ -268,12 +268,11 @@ class TestRsaKeyPairCredentialsProvider(unittest.TestCase):
                     http_options=self.http_options
                 )
 
-                loop = asyncio.get_event_loop()
-                task = asyncio.ensure_future(
-                    provider._refresh_credentials_async()
-                )
-                loop.run_until_complete(task)
-                credentials = task.result()
+                # 使用 asyncio.run() 替代 get_event_loop()
+                async def run_test():
+                    return await provider._refresh_credentials_async()
+
+                credentials = asyncio.run(run_test())
 
                 self.assertEqual(credentials.value().get_access_key_id(), "test_access_key_id")
                 self.assertEqual(credentials.value().get_access_key_secret(),
@@ -304,11 +303,11 @@ class TestRsaKeyPairCredentialsProvider(unittest.TestCase):
                 )
 
                 with self.assertRaises(CredentialException) as context:
-                    loop = asyncio.get_event_loop()
-                    task = asyncio.ensure_future(
-                        provider.get_credentials_async()
-                    )
-                    loop.run_until_complete(task)
+                    # 使用 asyncio.run() 替代 get_event_loop()
+                    async def run_test():
+                        return await provider.get_credentials_async()
+                    
+                    asyncio.run(run_test())
 
                 self.assertIn(
                     "error refreshing credentials from rsa_key_pair, http_code: 400, result: HTTP request failed",
@@ -338,11 +337,11 @@ class TestRsaKeyPairCredentialsProvider(unittest.TestCase):
                 )
 
                 with self.assertRaises(CredentialException) as context:
-                    loop = asyncio.get_event_loop()
-                    task = asyncio.ensure_future(
-                        provider.get_credentials_async()
-                    )
-                    loop.run_until_complete(task)
+                    # 使用 asyncio.run() 替代 get_event_loop()
+                    async def run_test():
+                        return await provider.get_credentials_async()
+                    
+                    asyncio.run(run_test())
 
                 self.assertIn(
                     'error retrieving credentials from rsa_key_pair result: {"Error": "Invalid request"}',
