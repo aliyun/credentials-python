@@ -26,7 +26,6 @@ EXECUTOR = ThreadPoolExecutor(max_workers=INT64_MAX, thread_name_prefix='non-blo
 
 
 def _shutdown_handler():
-    log.debug("Shutting down executor...")
     EXECUTOR.shutdown(wait=False)
 
 
