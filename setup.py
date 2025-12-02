@@ -78,4 +78,4 @@ setup_args = {
     )
 }
 
-setup(name='alibabacloud-credentials', **setup_args)
+setup(name='alibabacloud_credentials', **setup_args)
