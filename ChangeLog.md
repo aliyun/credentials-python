@@ -1,3 +1,7 @@
+### 2025-12-02 Version 1.0.4rc1
+* Support CloudSSO credentials provider.
+* Support OAuth credentials provider.
+
 ### 2025-10-14 Version 1.0.3
 * Update logger level.
 
