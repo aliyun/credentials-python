@@ -240,34 +240,41 @@ class CLIProfileCredentialsProvider(ICredentialsProvider):
                              security_token: str, access_token_expire: int, sts_expire: int) -> None:
         """更新 OAuth 令牌并写回配置文件"""
 
+        def _find_source_oauth_profile(config: dict, profile_name: str) -> dict:
+            profiles = config.get('profiles', [])
+            profile = next((p for p in profiles if p.get('name') == profile_name), None)
+            if not profile:
+                raise CredentialException(f"unable to get profile with name '{profile_name}' from cli credentials file.")
+
+            if profile.get('mode') == 'OAuth':
+                return profile
+            elif source_profile := profile.get('source_profile'):
+                return _find_source_oauth_profile(config, source_profile)
+
+            raise CredentialException(f"unable to get OAuth profile with name '{profile_name}' from cli credentials file.")
+
+
         with self._file_lock:
             try:
                 # 读取现有配置
                 config = _load_config(self._profile_file)
 
                 # 找到当前 profile 并更新 OAuth 令牌
-                profile_name = self._profile_name
+                profile_name = self._profile_name or config.get('current')
                 if not profile_name:
-                    profile_name = config.get('current')
-                profiles = config.get('profiles', [])
-                profile_tag = False
-                for profile in profiles:
-                    if profile.get('name') == profile_name:
-                        profile_tag = True
-                        # 更新 OAuth 令牌
-                        profile['oauth_refresh_token'] = refresh_token
-                        profile['oauth_access_token'] = access_token
-                        profile['oauth_access_token_expire'] = access_token_expire
-                        # 更新 STS 凭据
-                        profile['access_key_id'] = access_key
-                        profile['access_key_secret'] = secret
-                        profile['sts_token'] = security_token
-                        profile['sts_expiration'] = sts_expire
-                        break
+                    raise CredentialException(f"unable to get profile to updated.")
 
-                # 写回配置文件
-                if not profile_tag:
-                    raise CredentialException(f"unable to get profile with '{profile_name}' form cli credentials file.")
+                source_profile = _find_source_oauth_profile(config, profile_name)
+
+                # 更新 OAuth 令牌
+                source_profile['oauth_refresh_token'] = refresh_token
+                source_profile['oauth_access_token'] = access_token
+                source_profile['oauth_access_token_expire'] = access_token_expire
+                # 更新 STS 凭据
+                source_profile['access_key_id'] = access_key
+                source_profile['access_key_secret'] = secret
+                source_profile['sts_token'] = security_token
+                source_profile['sts_expiration'] = sts_expire
 
                 self._write_configuration_to_file_with_lock(self._profile_file, config)
 
