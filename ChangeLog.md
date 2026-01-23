@@ -1,3 +1,6 @@
+### 2026-01-23 Version 1.0.5
+* Fix OAuth token rewrite.
+
 ### 2025-12-05 Version 1.0.4
 * Support CloudSSO credentials provider.
 * Support OAuth credentials provider.
