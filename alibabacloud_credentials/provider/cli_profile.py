@@ -248,8 +248,10 @@ class CLIProfileCredentialsProvider(ICredentialsProvider):
 
             if profile.get('mode') == 'OAuth':
                 return profile
-            elif source_profile := profile.get('source_profile'):
-                return _find_source_oauth_profile(config, source_profile)
+            else:
+                source_profile = profile.get('source_profile')
+                if source_profile:
+                    return _find_source_oauth_profile(config, source_profile)
 
             raise CredentialException(f"unable to get OAuth profile with name '{profile_name}' from cli credentials file.")
 
@@ -563,8 +565,10 @@ class CLIProfileCredentialsProvider(ICredentialsProvider):
 
             if profile.get('mode') == 'OAuth':
                 return profile
-            elif source_profile := profile.get('source_profile'):
-                return _find_source_oauth_profile(config, source_profile)
+            else:
+                source_profile = profile.get('source_profile')
+                if source_profile:
+                    return _find_source_oauth_profile(config, source_profile)
 
             raise CredentialException(f"unable to get OAuth profile with name '{profile_name}' from cli credentials file.")
 
