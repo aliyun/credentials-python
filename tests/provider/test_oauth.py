@@ -102,32 +102,30 @@ class TestOAuthCredentialsProvider(unittest.TestCase):
 
     def test_init_missing_access_token(self):
         """
-        Test case 5: Missing access_token raises ValueError
+        Test case 5: Missing access_token and refresh_token should not raise
         """
-        with self.assertRaises(ValueError) as context:
-            OAuthCredentialsProvider(
-                client_id="123",
-                sign_in_url="https://oauth.aliyun.com",
-                access_token_expire=self.access_token_expire
-            )
-
-        self.assertIn("OAuth access token is empty or expired, please re-login with cli", str(context.exception))
+        provider = OAuthCredentialsProvider(
+            client_id="123",
+            sign_in_url="https://oauth.aliyun.com",
+            access_token_expire=self.access_token_expire
+        )
+        self.assertIsNone(provider._access_token)
+        self.assertIsNone(provider._refresh_token)
 
     def test_init_missing_refresh_token(self):
         """
-        Test case 6: Missing refresh_token raises ValueError
+        Test case 6: Missing refresh_token should not raise
         """
         expired_time = int(time.mktime(time.localtime())) - 3600  # 1 hour ago
 
-        with self.assertRaises(ValueError) as context:
-            OAuthCredentialsProvider(
-                client_id="123",
-                sign_in_url="https://oauth.aliyun.com",
-                access_token=self.access_token,
-                access_token_expire=expired_time
-            )
-
-        self.assertIn("OAuth access token is empty or expired, please re-login with cli", str(context.exception))
+        provider = OAuthCredentialsProvider(
+            client_id="123",
+            sign_in_url="https://oauth.aliyun.com",
+            access_token=self.access_token,
+            access_token_expire=expired_time
+        )
+        self.assertEqual(provider._access_token, self.access_token)
+        self.assertIsNone(provider._refresh_token)
 
     def test_init_default_http_options(self):
         """
@@ -601,29 +599,27 @@ class TestOAuthCredentialsProvider(unittest.TestCase):
         self.assertEqual(credentials.get_access_key_id(), "test_access_key_id")
 
     def test_oauth_provider_without_refresh_token(self):
-        """测试没有refresh_token的OAuth提供者"""
-        with self.assertRaises(ValueError) as context:
-            OAuthCredentialsProvider(
-                client_id="123",
-                sign_in_url="https://oauth.aliyun.com",
-                access_token="test_access_token",
-                access_token_expire=int(time.time()) + 3600
-            )
-
-        self.assertIn("OAuth access token is empty or expired, please re-login with cli", str(context.exception))
+        """测试没有refresh_token的OAuth提供者可以正常创建"""
+        provider = OAuthCredentialsProvider(
+            client_id="123",
+            sign_in_url="https://oauth.aliyun.com",
+            access_token="test_access_token",
+            access_token_expire=int(time.time()) + 3600
+        )
+        self.assertEqual(provider._access_token, "test_access_token")
+        self.assertIsNone(provider._refresh_token)
 
     def test_oauth_provider_with_empty_refresh_token(self):
-        """测试空refresh_token的OAuth提供者"""
-        with self.assertRaises(ValueError) as context:
-            OAuthCredentialsProvider(
-                client_id="123",
-                sign_in_url="https://oauth.aliyun.com",
-                access_token="test_access_token",
-                access_token_expire=int(time.time()) + 3600,
-                refresh_token=""
-            )
-
-        self.assertIn("OAuth access token is empty or expired, please re-login with cli", str(context.exception))
+        """测试空refresh_token的OAuth提供者可以正常创建"""
+        provider = OAuthCredentialsProvider(
+            client_id="123",
+            sign_in_url="https://oauth.aliyun.com",
+            access_token="test_access_token",
+            access_token_expire=int(time.time()) + 3600,
+            refresh_token=""
+        )
+        self.assertEqual(provider._access_token, "test_access_token")
+        self.assertEqual(provider._refresh_token, "")
 
     @patch('Tea.core.TeaCore.do_action')
     def test_oauth_token_refresh_failure(self, mock_do_action):
@@ -844,28 +840,26 @@ class TestOAuthCredentialsProvider(unittest.TestCase):
         self.assertIn("the url for sign-in is empty", str(context.exception))
 
     def test_oauth_provider_refresh_token_validation(self):
-        """测试OAuth提供者refresh_token验证"""
-        # 测试None refresh_token
-        with self.assertRaises(ValueError) as context:
-            OAuthCredentialsProvider(
-                client_id="123",
-                sign_in_url="https://oauth.aliyun.com",
-                access_token="test_access_token",
-                access_token_expire=int(time.time()) + 3600,
-                refresh_token=None
-            )
-        self.assertIn("OAuth access token is empty or expired, please re-login with cli", str(context.exception))
+        """测试OAuth提供者refresh_token可以为空"""
+        # 测试None refresh_token可以正常创建
+        provider = OAuthCredentialsProvider(
+            client_id="123",
+            sign_in_url="https://oauth.aliyun.com",
+            access_token="test_access_token",
+            access_token_expire=int(time.time()) + 3600,
+            refresh_token=None
+        )
+        self.assertIsNone(provider._refresh_token)
 
-        # 测试空字符串refresh_token
-        with self.assertRaises(ValueError) as context:
-            OAuthCredentialsProvider(
-                client_id="123",
-                sign_in_url="https://oauth.aliyun.com",
-                access_token="test_access_token",
-                access_token_expire=int(time.time()) + 3600,
-                refresh_token=""
-            )
-        self.assertIn("OAuth access token is empty or expired, please re-login with cli", str(context.exception))
+        # 测试空字符串refresh_token可以正常创建
+        provider = OAuthCredentialsProvider(
+            client_id="123",
+            sign_in_url="https://oauth.aliyun.com",
+            access_token="test_access_token",
+            access_token_expire=int(time.time()) + 3600,
+            refresh_token=""
+        )
+        self.assertEqual(provider._refresh_token, "")
 
     def test_oauth_provider_with_async_callback(self):
         """测试带有异步回调的OAuth提供者"""
