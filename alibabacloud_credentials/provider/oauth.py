@@ -48,9 +48,6 @@ class OAuthCredentialsProvider(ICredentialsProvider):
         if not sign_in_url:
             raise ValueError('the url for sign-in is empty')
 
-        if not refresh_token:
-            raise ValueError('OAuth access token is empty or expired, please re-login with cli')
-
         self._client_id = client_id
         self._sign_in_url = sign_in_url
         self._access_token = access_token
@@ -159,10 +156,9 @@ class OAuthCredentialsProvider(ICredentialsProvider):
         self._access_token_expire = new_access_token_expire
 
     def _refresh_credentials(self) -> RefreshResult[Credentials]:
-        # OAuth token 必须提前足够时间刷新，确保有效期 >= 15分钟用于后续 exchange 操作
-        # 设置为20分钟（1200秒）提前量，留有5分钟余量
-        if self._access_token is None or self._access_token_expire <= 0 or self._access_token_expire - int(
-                time.mktime(time.localtime())) <= 1200:
+        if self._refresh_token and (
+                self._access_token is None or self._access_token_expire <= 0 or self._access_token_expire - int(
+                time.mktime(time.localtime())) <= 1200):
             self._try_refresh_oauth_token()
 
         r = urlparse(self._sign_in_url)
@@ -222,10 +218,9 @@ class OAuthCredentialsProvider(ICredentialsProvider):
                              stale_time=_get_stale_time(expiration))
 
     async def _refresh_credentials_async(self) -> RefreshResult[Credentials]:
-        # OAuth token 必须提前足够时间刷新，确保有效期 >= 15分钟用于后续 exchange 操作
-        # 设置为20分钟（1200秒）提前量，留有5分钟余量
-        if self._access_token is None or self._access_token_expire <= 0 or self._access_token_expire - int(
-                time.mktime(time.localtime())) <= 1200:
+        if self._refresh_token and (
+                self._access_token is None or self._access_token_expire <= 0 or self._access_token_expire - int(
+                time.mktime(time.localtime())) <= 1200):
             await self._try_refresh_oauth_token_async()
 
         r = urlparse(self._sign_in_url)
