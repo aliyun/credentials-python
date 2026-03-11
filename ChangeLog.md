@@ -1,3 +1,6 @@
+### 2026-03-11 Version 1.0.8
+* Support OAuth credential without refresh token.
+
 ### 2026-01-27 Version 1.0.7
 * Change OAuth token refresh threshold from 180s (3min) to 1200s (20min). This change ensure sufficient token validity (≥15min) for subsequent /v1/exchange calls.
 
