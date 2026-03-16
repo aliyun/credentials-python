@@ -425,7 +425,9 @@ If you want to use different types of credentials in the development and product
 
 ## Issues
 
-[Opening an Issue](https://github.com/aliyun/credentials-python/issues/new), Issues not conforming to the guidelines may be closed immediately.
+If you encounter any issues, please check the [FAQ document (Chinese)](./FAQ-CN.md) first for common problems and solutions.
+
+If the FAQ doesn't solve your problem, feel free to [open an issue](https://github.com/aliyun/credentials-python/issues/new). Issues not conforming to the guidelines may be closed immediately.
 
 ## Changelog
 
