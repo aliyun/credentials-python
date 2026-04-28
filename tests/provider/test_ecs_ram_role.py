@@ -1,3 +1,4 @@
+import atexit
 import unittest
 from unittest.mock import patch, MagicMock, AsyncMock
 import asyncio
@@ -484,3 +485,28 @@ class TestEcsRamRoleCredentialsProvider(unittest.TestCase):
         # Test get_provider_name
         provider_name = provider.get_provider_name()
         self.assertEqual(provider_name, 'ecs_ram_role')
+
+    def test_async_update_enabled_registers_atexit(self):
+        """
+        Test case: When async_update_enabled is True, scheduler shutdown
+        is registered via atexit instead of signal handlers.
+        """
+        with patch('alibabacloud_credentials.provider.ecs_ram_role.au.environment_ecs_metadata_disabled', 'false'):
+            with patch('alibabacloud_credentials.provider.ecs_ram_role.au.environment_ecs_metadata', self.role_name):
+                with patch.object(atexit, 'register') as mock_atexit_register:
+                    provider = EcsRamRoleCredentialsProvider(
+                        role_name=self.role_name,
+                        disable_imds_v1=self.disable_imds_v1,
+                        http_options=self.http_options,
+                        async_update_enabled=True
+                    )
+
+                    # Verify atexit.register was called exactly once
+                    mock_atexit_register.assert_called_once()
+
+                    # Verify the registered callable targets scheduler.shutdown
+                    call_args = mock_atexit_register.call_args
+                    registered_callable = call_args[0][0]
+
+                    # The callable should reference scheduler.shutdown
+                    self.assertEqual(registered_callable.__name__, 'shutdown')
