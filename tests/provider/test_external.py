@@ -11,13 +11,15 @@ from alibabacloud_credentials.provider.external import ExternalCredentialsProvid
 
 class TestExternalCredentialsProvider(unittest.TestCase):
 
-    def _create_script(self, content):
+    def _create_script(self, content, windows_content=None):
         temp_dir = tempfile.mkdtemp()
-        script_path = os.path.join(temp_dir, 'external_credential.sh')
+        script_path = os.path.join(temp_dir, 'external_credential.bat' if os.name == 'nt' else 'external_credential.sh')
         with open(script_path, 'w') as f:
-            f.write(content)
-        os.chmod(script_path, 0o755)
-        return script_path
+            f.write(windows_content if os.name == 'nt' and windows_content is not None else content)
+        if os.name != 'nt':
+            os.chmod(script_path, 0o755)
+            return script_path
+        return '"{}"'.format(script_path)
 
     def test_init_validation(self):
         with self.assertRaises(ValueError) as context:
@@ -27,7 +29,9 @@ class TestExternalCredentialsProvider(unittest.TestCase):
     def test_get_credentials_ak_success(self):
         script_path = self._create_script(
             "#!/bin/sh\n"
-            "echo '{\"mode\":\"AK\",\"access_key_id\":\"akid\",\"access_key_secret\":\"secret\"}'\n"
+            "echo '{\"mode\":\"AK\",\"access_key_id\":\"akid\",\"access_key_secret\":\"secret\"}'\n",
+            "@echo off\n"
+            "echo {\"mode\":\"AK\",\"access_key_id\":\"akid\",\"access_key_secret\":\"secret\"}\n"
         )
         provider = ExternalCredentialsProvider(process_command=script_path)
 
@@ -48,7 +52,15 @@ class TestExternalCredentialsProvider(unittest.TestCase):
                 'access_key_secret': 'secret',
                 'sts_token': 'token',
                 'expiration': expiration,
-            }) + "'\n"
+            }) + "'\n",
+            "@echo off\n"
+            "echo " + json.dumps({
+                'mode': 'StsToken',
+                'access_key_id': 'akid',
+                'access_key_secret': 'secret',
+                'sts_token': 'token',
+                'expiration': expiration,
+            }) + "\n"
         )
         callback_args = []
         provider = ExternalCredentialsProvider(
@@ -76,7 +88,15 @@ class TestExternalCredentialsProvider(unittest.TestCase):
                     'access_key_secret': 'secret',
                     'sts_token': 'token',
                     'expiration': expiration,
-                }) + "'\n"
+                }) + "'\n",
+                "@echo off\n"
+                "echo " + json.dumps({
+                    'mode': 'StsToken',
+                    'access_key_id': 'akid',
+                    'access_key_secret': 'secret',
+                    'sts_token': 'token',
+                    'expiration': expiration,
+                }) + "\n"
             )
             callback_args = []
 
@@ -96,7 +116,10 @@ class TestExternalCredentialsProvider(unittest.TestCase):
         asyncio.run(run_test())
 
     def test_invalid_json(self):
-        script_path = self._create_script("#!/bin/sh\necho 'invalid json'\n")
+        script_path = self._create_script(
+            "#!/bin/sh\necho 'invalid json'\n",
+            "@echo off\necho invalid json\n"
+        )
         provider = ExternalCredentialsProvider(process_command=script_path)
 
         with self.assertRaises(CredentialException) as context:
@@ -106,7 +129,9 @@ class TestExternalCredentialsProvider(unittest.TestCase):
     def test_missing_access_key(self):
         script_path = self._create_script(
             "#!/bin/sh\n"
-            "echo '{\"mode\":\"AK\",\"access_key_id\":\"\",\"access_key_secret\":\"secret\"}'\n"
+            "echo '{\"mode\":\"AK\",\"access_key_id\":\"\",\"access_key_secret\":\"secret\"}'\n",
+            "@echo off\n"
+            "echo {\"mode\":\"AK\",\"access_key_id\":\"\",\"access_key_secret\":\"secret\"}\n"
         )
         provider = ExternalCredentialsProvider(process_command=script_path)
 
@@ -117,7 +142,9 @@ class TestExternalCredentialsProvider(unittest.TestCase):
     def test_missing_sts_token(self):
         script_path = self._create_script(
             "#!/bin/sh\n"
-            "echo '{\"mode\":\"StsToken\",\"access_key_id\":\"akid\",\"access_key_secret\":\"secret\"}'\n"
+            "echo '{\"mode\":\"StsToken\",\"access_key_id\":\"akid\",\"access_key_secret\":\"secret\"}'\n",
+            "@echo off\n"
+            "echo {\"mode\":\"StsToken\",\"access_key_id\":\"akid\",\"access_key_secret\":\"secret\"}\n"
         )
         provider = ExternalCredentialsProvider(process_command=script_path)
 
@@ -126,7 +153,10 @@ class TestExternalCredentialsProvider(unittest.TestCase):
         self.assertIn('sts_token is empty', str(context.exception))
 
     def test_command_failure(self):
-        script_path = self._create_script("#!/bin/sh\necho failed >&2\nexit 1\n")
+        script_path = self._create_script(
+            "#!/bin/sh\necho failed >&2\nexit 1\n",
+            "@echo off\necho failed 1>&2\nexit /b 1\n"
+        )
         provider = ExternalCredentialsProvider(process_command=script_path)
 
         with self.assertRaises(CredentialException) as context:

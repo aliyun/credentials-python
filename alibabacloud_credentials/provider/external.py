@@ -2,6 +2,7 @@ import asyncio
 import calendar
 import json
 import logging
+import os
 import shlex
 import subprocess
 import time
@@ -57,18 +58,19 @@ class ExternalCredentialsProvider(ICredentialsProvider):
         return await self._credentials_cache._async_call()
 
     def _refresh_credentials(self) -> RefreshResult[Credentials]:
-        args = shlex.split(self._process_command)
-        if not args:
+        if not self._process_command.strip():
             raise CredentialException('process_command is empty')
 
         try:
+            command = self._process_command if os.name == 'nt' else shlex.split(self._process_command)
             completed = subprocess.run(
-                args,
+                command,
                 stdout=subprocess.PIPE,
                 stderr=subprocess.PIPE,
                 timeout=self._timeout,
                 check=False,
                 text=True,
+                shell=os.name == 'nt',
             )
         except subprocess.TimeoutExpired:
             raise CredentialException(f'command process timed out after {self._timeout * 1000} milliseconds')
@@ -82,16 +84,22 @@ class ExternalCredentialsProvider(ICredentialsProvider):
         return self._parse_and_build_credentials(completed.stdout, async_callback=False)
 
     async def _refresh_credentials_async(self) -> RefreshResult[Credentials]:
-        args = shlex.split(self._process_command)
-        if not args:
+        if not self._process_command.strip():
             raise CredentialException('process_command is empty')
 
         try:
-            process = await asyncio.create_subprocess_exec(
-                *args,
-                stdout=asyncio.subprocess.PIPE,
-                stderr=asyncio.subprocess.PIPE,
-            )
+            if os.name == 'nt':
+                process = await asyncio.create_subprocess_shell(
+                    self._process_command,
+                    stdout=asyncio.subprocess.PIPE,
+                    stderr=asyncio.subprocess.PIPE,
+                )
+            else:
+                process = await asyncio.create_subprocess_exec(
+                    *shlex.split(self._process_command),
+                    stdout=asyncio.subprocess.PIPE,
+                    stderr=asyncio.subprocess.PIPE,
+                )
             stdout, stderr = await asyncio.wait_for(process.communicate(), timeout=self._timeout)
         except asyncio.TimeoutError:
             if 'process' in locals():
