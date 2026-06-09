@@ -1,3 +1,6 @@
+### 2026-06-09 Version 1.0.9
+* Support External credentials.
+
 ### 2026-03-11 Version 1.0.8
 * Support OAuth credential without refresh token.
 
