@@ -11,6 +11,7 @@ from .profile import ProfileCredentialsProvider
 from .default import DefaultCredentialsProvider
 from .cloud_sso import CloudSSOCredentialsProvider
 from .oauth import OAuthCredentialsProvider
+from .external import ExternalCredentialsProvider
 
 __all__ = [
     'StaticAKCredentialsProvider',
@@ -25,5 +26,6 @@ __all__ = [
     'ProfileCredentialsProvider',
     'DefaultCredentialsProvider',
     'CloudSSOCredentialsProvider',
-    'OAuthCredentialsProvider'
+    'OAuthCredentialsProvider',
+    'ExternalCredentialsProvider'
 ]

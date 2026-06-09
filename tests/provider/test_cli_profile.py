@@ -16,7 +16,8 @@ from alibabacloud_credentials.provider import (
     EcsRamRoleCredentialsProvider,
     OIDCRoleArnCredentialsProvider,
     CloudSSOCredentialsProvider,
-    OAuthCredentialsProvider
+    OAuthCredentialsProvider,
+    ExternalCredentialsProvider
 )
 from alibabacloud_credentials.utils import auth_constant as ac
 
@@ -102,6 +103,11 @@ class TestCLIProfileCredentialsProvider(unittest.TestCase):
                     "oauth_refresh_token": "test_refresh_token",
                     "oauth_access_token": "test_oauth_access_token",
                     "oauth_access_token_expire": int(time.mktime(time.localtime())) + 1000
+                },
+                {
+                    "name": "external_profile",
+                    "mode": "External",
+                    "process_command": "/bin/echo '{\"mode\":\"AK\",\"access_key_id\":\"akid\",\"access_key_secret\":\"secret\"}'"
                 }
             ]
         }
@@ -305,6 +311,25 @@ class TestCLIProfileCredentialsProvider(unittest.TestCase):
                         self.assertEqual(credentials_provider._sign_in_url, 'https://oauth.aliyun.com')
                         self.assertEqual(credentials_provider._access_token, 'test_oauth_access_token')
                         self.assertTrue(credentials_provider._access_token_expire > int(time.mktime(time.localtime())))
+
+    def test_get_credentials_valid_external(self):
+        """
+        Test case 9: Valid input, successfully retrieves credentials for External mode
+        """
+        with patch('alibabacloud_credentials.provider.cli_profile.au.environment_cli_profile_disabled', False):
+            with patch('os.path.exists', return_value=True):
+                with patch('os.path.isfile', return_value=True):
+                    with patch('alibabacloud_credentials.provider.cli_profile._load_config', return_value=self.config):
+                        provider = CLIProfileCredentialsProvider(profile_name="external_profile")
+
+                        credentials_provider = provider._get_credentials_provider(config=self.config,
+                                                                                  profile_name="external_profile")
+
+                        self.assertIsInstance(credentials_provider, ExternalCredentialsProvider)
+                        self.assertEqual(
+                            credentials_provider._process_command,
+                            "/bin/echo '{\"mode\":\"AK\",\"access_key_id\":\"akid\",\"access_key_secret\":\"secret\"}'"
+                        )
 
     def test_get_credentials_cli_profile_disabled(self):
         """
@@ -546,6 +571,91 @@ class TestCLIProfileCredentialsProvider(unittest.TestCase):
         finally:
             import shutil
             shutil.rmtree(temp_dir, ignore_errors=True)
+
+    def test_update_external_credentials(self):
+        """测试 External 凭证更新回调写回当前 External profile"""
+        import tempfile
+        import shutil
+
+        temp_dir = tempfile.mkdtemp()
+        config_path = os.path.join(temp_dir, 'config.json')
+        test_config = {
+            "current": "external_source",
+            "profiles": [
+                {
+                    "name": "external_source",
+                    "mode": "External",
+                    "process_command": "echo test"
+                }
+            ]
+        }
+
+        with open(config_path, 'w') as f:
+            json.dump(test_config, f, indent=4)
+
+        try:
+            provider = CLIProfileCredentialsProvider(
+                profile_name="external_source",
+                profile_file=config_path,
+                allow_config_force_rewrite=True
+            )
+
+            provider._update_external_credentials("new_ak", "new_secret", "new_token", 4102444800)
+
+            with open(config_path, 'r') as f:
+                updated_config = json.load(f)
+
+            external_profile = updated_config['profiles'][0]
+            self.assertEqual(external_profile['access_key_id'], "new_ak")
+            self.assertEqual(external_profile['access_key_secret'], "new_secret")
+            self.assertEqual(external_profile['sts_token'], "new_token")
+            self.assertEqual(external_profile['sts_expiration'], 4102444800)
+        finally:
+            shutil.rmtree(temp_dir, ignore_errors=True)
+
+    def test_update_external_credentials_async(self):
+        """测试异步 External 凭证更新回调写回当前 External profile"""
+        async def run_test():
+            import tempfile
+            import shutil
+
+            temp_dir = tempfile.mkdtemp()
+            config_path = os.path.join(temp_dir, 'config.json')
+            test_config = {
+                "current": "external_source",
+                "profiles": [
+                    {
+                        "name": "external_source",
+                        "mode": "External",
+                        "process_command": "echo test"
+                    }
+                ]
+            }
+
+            with open(config_path, 'w') as f:
+                json.dump(test_config, f, indent=4)
+
+            try:
+                provider = CLIProfileCredentialsProvider(
+                    profile_name="external_source",
+                    profile_file=config_path,
+                    allow_config_force_rewrite=True
+                )
+
+                await provider._update_external_credentials_async("async_ak", "async_secret", "async_token", 4102444801)
+
+                with open(config_path, 'r') as f:
+                    updated_config = json.load(f)
+
+                external_profile = updated_config['profiles'][0]
+                self.assertEqual(external_profile['access_key_id'], "async_ak")
+                self.assertEqual(external_profile['access_key_secret'], "async_secret")
+                self.assertEqual(external_profile['sts_token'], "async_token")
+                self.assertEqual(external_profile['sts_expiration'], 4102444801)
+            finally:
+                shutil.rmtree(temp_dir, ignore_errors=True)
+
+        asyncio.run(run_test())
 
     def test_oauth_callback_integration(self):
         """测试 OAuth 回调集成"""

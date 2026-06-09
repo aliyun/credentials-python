@@ -30,6 +30,11 @@ from .oidc import OIDCRoleArnCredentialsProvider
 from .static_sts import StaticSTSCredentialsProvider
 from .cloud_sso import CloudSSOCredentialsProvider
 from .oauth import OAuthCredentialsProvider, OAuthTokenUpdateCallback, OAuthTokenUpdateCallbackAsync
+from .external import (
+    ExternalCredentialsProvider,
+    ExternalCredentialUpdateCallback,
+    ExternalCredentialUpdateCallbackAsync,
+)
 from .refreshable import Credentials
 from alibabacloud_credentials_api import ICredentialsProvider
 from alibabacloud_credentials.utils import auth_constant as ac
@@ -228,6 +233,12 @@ class CLIProfileCredentialsProvider(ICredentialsProvider):
                         token_update_callback=self._get_oauth_token_update_callback(),
                         token_update_callback_async=self._get_oauth_token_update_callback_async(),
                     )
+                elif mode == "External":
+                    return ExternalCredentialsProvider(
+                        process_command=profile.get('process_command'),
+                        credential_update_callback=self._get_external_credential_update_callback(),
+                        credential_update_callback_async=self._get_external_credential_update_callback_async(),
+                    )
                 else:
                     raise CredentialException(f"unsupported profile mode '{mode}' form cli credentials file.")
 
@@ -421,6 +432,48 @@ class CLIProfileCredentialsProvider(ICredentialsProvider):
             refresh_token, access_token, access_key, secret, security_token, access_token_expire, sts_expire
         )
 
+    def _update_external_credentials(self, access_key: str, secret: str,
+                                     security_token: str, expiration: int) -> None:
+        """更新 External 凭证并写回配置文件"""
+
+        def _find_source_external_profile(config: dict, profile_name: str) -> dict:
+            profiles = config.get('profiles', [])
+            profile = next((p for p in profiles if p.get('name') == profile_name), None)
+            if not profile:
+                raise CredentialException(f"unable to get profile with name '{profile_name}' from cli credentials file.")
+
+            if profile.get('mode') == 'External':
+                return profile
+
+            source_profile = profile.get('source_profile')
+            if source_profile:
+                return _find_source_external_profile(config, source_profile)
+
+            raise CredentialException(f"unable to get External profile with name '{profile_name}' from cli credentials file.")
+
+        with self._file_lock:
+            try:
+                config = _load_config(self._profile_file)
+                profile_name = self._profile_name or config.get('current')
+                if not profile_name:
+                    raise CredentialException(f"unable to get profile to updated.")
+
+                source_profile = _find_source_external_profile(config, profile_name)
+                source_profile['access_key_id'] = access_key
+                source_profile['access_key_secret'] = secret
+                source_profile['sts_token'] = security_token
+                source_profile['sts_expiration'] = expiration
+
+                self._write_configuration_to_file_with_lock(self._profile_file, config)
+            except Exception as e:
+                raise CredentialException(f"failed to update External credentials in config file: {e}")
+
+    def _get_external_credential_update_callback(self) -> ExternalCredentialUpdateCallback:
+        """获取 External 凭证更新回调函数"""
+        return lambda access_key, secret, security_token, expiration: self._update_external_credentials(
+            access_key, secret, security_token, expiration
+        )
+
     async def _write_configuration_to_file_async(self, config_path: str, config: Dict) -> None:
         """异步将配置写入文件，使用原子写入确保数据完整性"""
         # 获取原文件权限（如果存在）
@@ -603,4 +656,46 @@ class CLIProfileCredentialsProvider(ICredentialsProvider):
         """获取异步 OAuth 令牌更新回调函数"""
         return lambda refresh_token, access_token, access_key, secret, security_token, access_token_expire, sts_expire: self._update_oauth_tokens_async(
             refresh_token, access_token, access_key, secret, security_token, access_token_expire, sts_expire
+        )
+
+    async def _update_external_credentials_async(self, access_key: str, secret: str,
+                                                 security_token: str, expiration: int) -> None:
+        """异步更新 External 凭证并写回配置文件"""
+
+        def _find_source_external_profile(config: dict, profile_name: str) -> dict:
+            profiles = config.get('profiles', [])
+            profile = next((p for p in profiles if p.get('name') == profile_name), None)
+            if not profile:
+                raise CredentialException(f"unable to get profile with name '{profile_name}' from cli credentials file.")
+
+            if profile.get('mode') == 'External':
+                return profile
+
+            source_profile = profile.get('source_profile')
+            if source_profile:
+                return _find_source_external_profile(config, source_profile)
+
+            raise CredentialException(f"unable to get External profile with name '{profile_name}' from cli credentials file.")
+
+        with self._file_lock:
+            try:
+                config = await _load_config_async(self._profile_file)
+                profile_name = self._profile_name or config.get('current')
+                if not profile_name:
+                    raise CredentialException(f"unable to get profile to updated.")
+
+                source_profile = _find_source_external_profile(config, profile_name)
+                source_profile['access_key_id'] = access_key
+                source_profile['access_key_secret'] = secret
+                source_profile['sts_token'] = security_token
+                source_profile['sts_expiration'] = expiration
+
+                await self._write_configuration_to_file_with_lock_async(self._profile_file, config)
+            except Exception as e:
+                raise CredentialException(f"failed to update External credentials in config file: {e}")
+
+    def _get_external_credential_update_callback_async(self) -> ExternalCredentialUpdateCallbackAsync:
+        """获取异步 External 凭证更新回调函数"""
+        return lambda access_key, secret, security_token, expiration: self._update_external_credentials_async(
+            access_key, secret, security_token, expiration
         )
