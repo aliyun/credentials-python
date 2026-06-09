@@ -1,7 +1,7 @@
 import calendar
 import json
 import time
-import signal
+import atexit
 import logging
 
 from alibabacloud_credentials.provider.refreshable import Credentials, RefreshResult, StaleValueBehavior, \
@@ -67,13 +67,7 @@ class EcsRamRoleCredentialsProvider(ICredentialsProvider):
 
             scheduler.add_job(refresh_task, 'interval', minutes=1)
             scheduler.start()
-
-            def shutdown_handler(signum, frame):
-                log.debug(f'Shutting down scheduler...')
-                scheduler.shutdown(wait=False)
-
-            signal.signal(signal.SIGINT, shutdown_handler)
-            signal.signal(signal.SIGTERM, shutdown_handler)
+            atexit.register(scheduler.shutdown, wait=False)
 
         else:
             self._credentials_cache = RefreshCachedSupplier(
