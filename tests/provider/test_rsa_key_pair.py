@@ -9,7 +9,7 @@ from alibabacloud_credentials.provider.rsa_key_pair import (
     CredentialException
 )
 from alibabacloud_credentials.http import HttpOptions
-from Tea.core import TeaResponse
+from darabonba.core import DaraResponse
 
 
 class TestRsaKeyPairCredentialsProvider(unittest.TestCase):
@@ -160,11 +160,11 @@ class TestRsaKeyPairCredentialsProvider(unittest.TestCase):
                 "Expiration": "2023-12-31T23:59:59Z"
             }
         })
-        response = TeaResponse()
+        response = DaraResponse()
         response.status_code = 200
         response.body = response_body.encode('utf-8')
 
-        with patch('Tea.core.TeaCore.do_action', return_value=response):
+        with patch('darabonba.core.DaraCore.do_action', return_value=response):
             with patch('alibabacloud_credentials.provider.rsa_key_pair._get_content',
                        return_value=self.private_key_content):
                 provider = RsaKeyPairCredentialsProvider(
@@ -188,11 +188,11 @@ class TestRsaKeyPairCredentialsProvider(unittest.TestCase):
         """
         Test case 10: HTTP request error raises CredentialException
         """
-        response = TeaResponse()
+        response = DaraResponse()
         response.status_code = 400
         response.body = b'HTTP request failed'
 
-        with patch('Tea.core.TeaCore.do_action', return_value=response):
+        with patch('darabonba.core.DaraCore.do_action', return_value=response):
             with patch('alibabacloud_credentials.provider.rsa_key_pair._get_content',
                        return_value=self.private_key_content):
                 provider = RsaKeyPairCredentialsProvider(
@@ -218,11 +218,11 @@ class TestRsaKeyPairCredentialsProvider(unittest.TestCase):
         response_body = json.dumps({
             "Error": "Invalid request"
         })
-        response = TeaResponse()
+        response = DaraResponse()
         response.status_code = 200
         response.body = response_body.encode('utf-8')
 
-        with patch('Tea.core.TeaCore.do_action', return_value=response):
+        with patch('darabonba.core.DaraCore.do_action', return_value=response):
             with patch('alibabacloud_credentials.provider.rsa_key_pair._get_content',
                        return_value=self.private_key_content):
                 provider = RsaKeyPairCredentialsProvider(
@@ -252,11 +252,11 @@ class TestRsaKeyPairCredentialsProvider(unittest.TestCase):
                 "Expiration": "2023-12-31T23:59:59Z"
             }
         })
-        response = TeaResponse()
+        response = DaraResponse()
         response.status_code = 200
         response.body = response_body.encode('utf-8')
 
-        with patch('Tea.core.TeaCore.async_do_action', AsyncMock(return_value=response)):
+        with patch('darabonba.core.DaraCore.async_do_action', AsyncMock(return_value=response)):
             with patch('alibabacloud_credentials.provider.rsa_key_pair._get_content',
                        return_value=self.private_key_content):
                 provider = RsaKeyPairCredentialsProvider(
@@ -286,11 +286,11 @@ class TestRsaKeyPairCredentialsProvider(unittest.TestCase):
         """
         Test case 13: HTTP request error raises CredentialException asynchronously
         """
-        response = TeaResponse()
+        response = DaraResponse()
         response.status_code = 400
         response.body = b'HTTP request failed'
 
-        with patch('Tea.core.TeaCore.async_do_action', AsyncMock(return_value=response)):
+        with patch('darabonba.core.DaraCore.async_do_action', AsyncMock(return_value=response)):
             with patch('alibabacloud_credentials.provider.rsa_key_pair._get_content',
                        return_value=self.private_key_content):
                 provider = RsaKeyPairCredentialsProvider(
@@ -320,11 +320,11 @@ class TestRsaKeyPairCredentialsProvider(unittest.TestCase):
         response_body = json.dumps({
             "Error": "Invalid request"
         })
-        response = TeaResponse()
+        response = DaraResponse()
         response.status_code = 200
         response.body = response_body.encode('utf-8')
 
-        with patch('Tea.core.TeaCore.async_do_action', AsyncMock(return_value=response)):
+        with patch('darabonba.core.DaraCore.async_do_action', AsyncMock(return_value=response)):
             with patch('alibabacloud_credentials.provider.rsa_key_pair._get_content',
                        return_value=self.private_key_content):
                 provider = RsaKeyPairCredentialsProvider(

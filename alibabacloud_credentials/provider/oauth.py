@@ -7,7 +7,7 @@ from typing import Callable, Optional
 
 from alibabacloud_credentials.provider.refreshable import Credentials, RefreshResult, RefreshCachedSupplier
 from alibabacloud_credentials.http import HttpOptions
-from Tea.core import TeaCore
+from darabonba.core import DaraCore
 from alibabacloud_credentials_api import ICredentialsProvider
 from alibabacloud_credentials.utils import parameter_helper as ph
 from alibabacloud_credentials.exceptions import CredentialException
@@ -94,7 +94,7 @@ class OAuthCredentialsProvider(ICredentialsProvider):
         tea_request.body = urlencode(body_data)
         tea_request.headers['Content-Type'] = 'application/x-www-form-urlencoded'
 
-        response = TeaCore.do_action(tea_request, self._runtime_options)
+        response = DaraCore.do_action(tea_request, self._runtime_options)
 
         if response.status_code != 200:
             raise CredentialException(f"failed to refresh OAuth token, status code: {response.status_code}, response: {response.body.decode('utf-8')}")
@@ -135,7 +135,7 @@ class OAuthCredentialsProvider(ICredentialsProvider):
         tea_request.body = urlencode(body_data)
         tea_request.headers['Content-Type'] = 'application/x-www-form-urlencoded'
 
-        response = await TeaCore.async_do_action(tea_request, self._runtime_options)
+        response = await DaraCore.async_do_action(tea_request, self._runtime_options)
 
         if response.status_code != 200:
             raise CredentialException(f"failed to refresh OAuth token, status code: {response.status_code}, response: {response.body.decode('utf-8')}")
@@ -172,7 +172,7 @@ class OAuthCredentialsProvider(ICredentialsProvider):
         tea_request.headers['Content-Type'] = 'application/json'
         tea_request.headers['Authorization'] = f'Bearer {self._access_token}'
 
-        response = TeaCore.do_action(tea_request, self._runtime_options)
+        response = DaraCore.do_action(tea_request, self._runtime_options)
 
         if response.status_code != 200:
             raise CredentialException(
@@ -234,7 +234,7 @@ class OAuthCredentialsProvider(ICredentialsProvider):
         tea_request.headers['Content-Type'] = 'application/json'
         tea_request.headers['Authorization'] = f'Bearer {self._access_token}'
 
-        response = await TeaCore.async_do_action(tea_request, self._runtime_options)
+        response = await DaraCore.async_do_action(tea_request, self._runtime_options)
 
         if response.status_code != 200:
             raise CredentialException(

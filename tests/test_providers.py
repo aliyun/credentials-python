@@ -2,7 +2,7 @@ import unittest
 import time
 import asyncio
 
-from Tea.exceptions import RetryError
+from darabonba.exceptions import RetryError
 from alibabacloud_credentials import providers, models, credentials, exceptions
 from alibabacloud_credentials.exceptions import CredentialException
 from alibabacloud_credentials.utils import auth_util

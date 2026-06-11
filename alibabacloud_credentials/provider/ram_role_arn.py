@@ -5,7 +5,7 @@ import time
 from alibabacloud_credentials.provider.refreshable import Credentials, RefreshResult, RefreshCachedSupplier
 from alibabacloud_credentials.provider import StaticAKCredentialsProvider, StaticSTSCredentialsProvider
 from alibabacloud_credentials.http import HttpOptions
-from Tea.core import TeaCore
+from darabonba.core import DaraCore
 from alibabacloud_credentials_api import ICredentialsProvider
 from alibabacloud_credentials.utils import auth_util as au
 from alibabacloud_credentials.utils import parameter_helper as ph
@@ -134,7 +134,7 @@ class RamRoleArnCredentialsProvider(ICredentialsProvider):
         tea_request.protocol = 'https'
         tea_request.headers['host'] = self._sts_endpoint
 
-        response = TeaCore.do_action(tea_request, self._runtime_options)
+        response = DaraCore.do_action(tea_request, self._runtime_options)
 
         if response.status_code != 200:
             raise CredentialException(
@@ -200,7 +200,7 @@ class RamRoleArnCredentialsProvider(ICredentialsProvider):
         tea_request.protocol = 'https'
         tea_request.headers['host'] = self._sts_endpoint
 
-        response = await TeaCore.async_do_action(tea_request, self._runtime_options)
+        response = await DaraCore.async_do_action(tea_request, self._runtime_options)
 
         if response.status_code != 200:
             raise CredentialException(

@@ -9,7 +9,7 @@ from alibabacloud_credentials.provider.uri import (
     CredentialException
 )
 from alibabacloud_credentials.http import HttpOptions
-from Tea.core import TeaResponse
+from darabonba.core import DaraResponse
 
 
 class TestURLCredentialsProvider(unittest.TestCase):
@@ -29,7 +29,7 @@ class TestURLCredentialsProvider(unittest.TestCase):
             "SecurityToken": self.security_token,
             "Expiration": self.expiration
         })
-        self.response = TeaResponse()
+        self.response = DaraResponse()
         self.response.status_code = 200
         self.response.body = self.response_body.encode('utf-8')
 
@@ -94,7 +94,7 @@ class TestURLCredentialsProvider(unittest.TestCase):
         """
         Test case 5: Valid input, successfully retrieves credentials
         """
-        with patch('Tea.core.TeaCore.do_action', return_value=self.response):
+        with patch('darabonba.core.DaraCore.do_action', return_value=self.response):
             provider = URLCredentialsProvider(
                 uri=self.uri,
                 protocol=self.protocol,
@@ -114,11 +114,11 @@ class TestURLCredentialsProvider(unittest.TestCase):
         """
         Test case 6: HTTP request error raises CredentialException
         """
-        response = TeaResponse()
+        response = DaraResponse()
         response.status_code = 400
         response.body = b'HTTP request failed'
 
-        with patch('Tea.core.TeaCore.do_action', return_value=response):
+        with patch('darabonba.core.DaraCore.do_action', return_value=response):
             provider = URLCredentialsProvider(
                 uri=self.uri,
                 protocol=self.protocol,
@@ -140,11 +140,11 @@ class TestURLCredentialsProvider(unittest.TestCase):
             "Code": "Failure",
             "Message": "Invalid request"
         })
-        response = TeaResponse()
+        response = DaraResponse()
         response.status_code = 200
         response.body = response_body.encode('utf-8')
 
-        with patch('Tea.core.TeaCore.do_action', return_value=response):
+        with patch('darabonba.core.DaraCore.do_action', return_value=response):
             provider = URLCredentialsProvider(
                 uri=self.uri,
                 protocol=self.protocol,
@@ -161,7 +161,7 @@ class TestURLCredentialsProvider(unittest.TestCase):
         """
         Test case 8: Valid input, successfully retrieves credentials asynchronously
         """
-        with patch('Tea.core.TeaCore.async_do_action', AsyncMock(return_value=self.response)):
+        with patch('darabonba.core.DaraCore.async_do_action', AsyncMock(return_value=self.response)):
             provider = URLCredentialsProvider(
                 uri=self.uri,
                 protocol=self.protocol,
@@ -185,11 +185,11 @@ class TestURLCredentialsProvider(unittest.TestCase):
         """
         Test case 9: HTTP request error raises CredentialException asynchronously
         """
-        response = TeaResponse()
+        response = DaraResponse()
         response.status_code = 400
         response.body = b'HTTP request failed'
 
-        with patch('Tea.core.TeaCore.async_do_action', AsyncMock(return_value=response)):
+        with patch('darabonba.core.DaraCore.async_do_action', AsyncMock(return_value=response)):
             provider = URLCredentialsProvider(
                 uri=self.uri,
                 protocol=self.protocol,
@@ -215,11 +215,11 @@ class TestURLCredentialsProvider(unittest.TestCase):
             "Code": "Failure",
             "Message": "Invalid request"
         })
-        response = TeaResponse()
+        response = DaraResponse()
         response.status_code = 200
         response.body = response_body.encode('utf-8')
 
-        with patch('Tea.core.TeaCore.async_do_action', AsyncMock(return_value=response)):
+        with patch('darabonba.core.DaraCore.async_do_action', AsyncMock(return_value=response)):
             provider = URLCredentialsProvider(
                 uri=self.uri,
                 protocol=self.protocol,
@@ -246,11 +246,11 @@ class TestURLCredentialsProvider(unittest.TestCase):
             "SecurityToken": self.security_token,
             "Expiration": self.expiration
         })
-        response = TeaResponse()
+        response = DaraResponse()
         response.status_code = 200
         response.body = response_body.encode('utf-8')
 
-        with patch('Tea.core.TeaCore.do_action', return_value=response):
+        with patch('darabonba.core.DaraCore.do_action', return_value=response):
             provider = URLCredentialsProvider(
                 uri=self.uri,
                 protocol=self.protocol,
@@ -273,11 +273,11 @@ class TestURLCredentialsProvider(unittest.TestCase):
             "SecurityToken": self.security_token,
             "Expiration": self.expiration
         })
-        response = TeaResponse()
+        response = DaraResponse()
         response.status_code = 200
         response.body = response_body.encode('utf-8')
 
-        with patch('Tea.core.TeaCore.do_action', return_value=response):
+        with patch('darabonba.core.DaraCore.do_action', return_value=response):
             provider = URLCredentialsProvider(
                 uri=self.uri,
                 protocol=self.protocol,
@@ -300,11 +300,11 @@ class TestURLCredentialsProvider(unittest.TestCase):
             "AccessKeySecret": self.access_key_secret,
             "Expiration": self.expiration
         })
-        response = TeaResponse()
+        response = DaraResponse()
         response.status_code = 200
         response.body = response_body.encode('utf-8')
 
-        with patch('Tea.core.TeaCore.do_action', return_value=response):
+        with patch('darabonba.core.DaraCore.do_action', return_value=response):
             provider = URLCredentialsProvider(
                 uri=self.uri,
                 protocol=self.protocol,
@@ -327,11 +327,11 @@ class TestURLCredentialsProvider(unittest.TestCase):
             "AccessKeySecret": self.access_key_secret,
             "SecurityToken": self.security_token
         })
-        response = TeaResponse()
+        response = DaraResponse()
         response.status_code = 200
         response.body = response_body.encode('utf-8')
 
-        with patch('Tea.core.TeaCore.do_action', return_value=response):
+        with patch('darabonba.core.DaraCore.do_action', return_value=response):
             provider = URLCredentialsProvider(
                 uri=self.uri,
                 protocol=self.protocol,
@@ -355,11 +355,11 @@ class TestURLCredentialsProvider(unittest.TestCase):
             "SecurityToken": self.security_token,
             "Expiration": self.expiration
         })
-        response = TeaResponse()
+        response = DaraResponse()
         response.status_code = 200
         response.body = response_body.encode('utf-8')
 
-        with patch('Tea.core.TeaCore.do_action', return_value=response):
+        with patch('darabonba.core.DaraCore.do_action', return_value=response):
             provider = URLCredentialsProvider(
                 uri=self.uri,
                 protocol=self.protocol,

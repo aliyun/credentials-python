@@ -10,7 +10,7 @@ from alibabacloud_credentials.provider.ecs_ram_role import (
     CredentialException
 )
 from alibabacloud_credentials.http import HttpOptions
-from Tea.core import TeaResponse
+from darabonba.core import DaraResponse
 
 
 class TestEcsRamRoleCredentialsProvider(unittest.TestCase):
@@ -33,7 +33,7 @@ class TestEcsRamRoleCredentialsProvider(unittest.TestCase):
             "SecurityToken": self.security_token,
             "Expiration": self.expiration
         })
-        self.response = TeaResponse()
+        self.response = DaraResponse()
         self.response.status_code = 200
         self.response.body = self.response_body.encode('utf-8')
 
@@ -93,7 +93,7 @@ class TestEcsRamRoleCredentialsProvider(unittest.TestCase):
                 with patch(
                         'alibabacloud_credentials.provider.ecs_ram_role.EcsRamRoleCredentialsProvider._get_metadata_token',
                         return_value=self.metadata_token):
-                    with patch('Tea.core.TeaCore.do_action', return_value=self.response):
+                    with patch('darabonba.core.DaraCore.do_action', return_value=self.response):
                         provider = EcsRamRoleCredentialsProvider(
                             role_name=self.role_name,
                             disable_imds_v1=self.disable_imds_v1,
@@ -118,7 +118,7 @@ class TestEcsRamRoleCredentialsProvider(unittest.TestCase):
         """
         Test case 6: HTTP request error raises CredentialException
         """
-        response = TeaResponse()
+        response = DaraResponse()
         response.status_code = 400
         response.body = b'HTTP request failed'
 
@@ -127,7 +127,7 @@ class TestEcsRamRoleCredentialsProvider(unittest.TestCase):
                 with patch(
                         'alibabacloud_credentials.provider.ecs_ram_role.EcsRamRoleCredentialsProvider._get_metadata_token',
                         return_value=self.metadata_token):
-                    with patch('Tea.core.TeaCore.do_action', return_value=response):
+                    with patch('darabonba.core.DaraCore.do_action', return_value=response):
                         provider = EcsRamRoleCredentialsProvider(
                             role_name=self.role_name,
                             disable_imds_v1=self.disable_imds_v1,
@@ -149,7 +149,7 @@ class TestEcsRamRoleCredentialsProvider(unittest.TestCase):
             "Code": "Failure",
             "Message": "Invalid request"
         })
-        response = TeaResponse()
+        response = DaraResponse()
         response.status_code = 200
         response.body = response_body.encode('utf-8')
 
@@ -158,7 +158,7 @@ class TestEcsRamRoleCredentialsProvider(unittest.TestCase):
                 with patch(
                         'alibabacloud_credentials.provider.ecs_ram_role.EcsRamRoleCredentialsProvider._get_metadata_token',
                         return_value=self.metadata_token):
-                    with patch('Tea.core.TeaCore.do_action', return_value=response):
+                    with patch('darabonba.core.DaraCore.do_action', return_value=response):
                         provider = EcsRamRoleCredentialsProvider(
                             role_name=self.role_name,
                             disable_imds_v1=self.disable_imds_v1,
@@ -180,7 +180,7 @@ class TestEcsRamRoleCredentialsProvider(unittest.TestCase):
                 with patch(
                         'alibabacloud_credentials.provider.ecs_ram_role.EcsRamRoleCredentialsProvider._get_metadata_token_async',
                         AsyncMock(return_value=self.metadata_token)):
-                    with patch('Tea.core.TeaCore.async_do_action', AsyncMock(return_value=self.response)):
+                    with patch('darabonba.core.DaraCore.async_do_action', AsyncMock(return_value=self.response)):
                         provider = EcsRamRoleCredentialsProvider(
                             role_name=self.role_name,
                             disable_imds_v1=self.disable_imds_v1,
@@ -213,7 +213,7 @@ class TestEcsRamRoleCredentialsProvider(unittest.TestCase):
         """
         Test case 9: HTTP request error raises CredentialException asynchronously
         """
-        response = TeaResponse()
+        response = DaraResponse()
         response.status_code = 400
         response.body = b'HTTP request failed'
 
@@ -222,7 +222,7 @@ class TestEcsRamRoleCredentialsProvider(unittest.TestCase):
                 with patch(
                         'alibabacloud_credentials.provider.ecs_ram_role.EcsRamRoleCredentialsProvider._get_metadata_token_async',
                         AsyncMock(return_value=self.metadata_token)):
-                    with patch('Tea.core.TeaCore.async_do_action', AsyncMock(return_value=response)):
+                    with patch('darabonba.core.DaraCore.async_do_action', AsyncMock(return_value=response)):
                         provider = EcsRamRoleCredentialsProvider(
                             role_name=self.role_name,
                             disable_imds_v1=self.disable_imds_v1,
@@ -248,7 +248,7 @@ class TestEcsRamRoleCredentialsProvider(unittest.TestCase):
             "Code": "Failure",
             "Message": "Invalid request"
         })
-        response = TeaResponse()
+        response = DaraResponse()
         response.status_code = 200
         response.body = response_body.encode('utf-8')
 
@@ -257,7 +257,7 @@ class TestEcsRamRoleCredentialsProvider(unittest.TestCase):
                 with patch(
                         'alibabacloud_credentials.provider.ecs_ram_role.EcsRamRoleCredentialsProvider._get_metadata_token_async',
                         AsyncMock(return_value=self.metadata_token)):
-                    with patch('Tea.core.TeaCore.async_do_action', AsyncMock(return_value=response)):
+                    with patch('darabonba.core.DaraCore.async_do_action', AsyncMock(return_value=response)):
                         provider = EcsRamRoleCredentialsProvider(
                             role_name=self.role_name,
                             disable_imds_v1=self.disable_imds_v1,
@@ -279,12 +279,12 @@ class TestEcsRamRoleCredentialsProvider(unittest.TestCase):
         Test case 11: Valid input, successfully retrieves metadata token
         """
         response_body = self.metadata_token
-        response = TeaResponse()
+        response = DaraResponse()
         response.status_code = 200
         response.body = response_body.encode('utf-8')
 
         with patch('alibabacloud_credentials.provider.ecs_ram_role.au.environment_imds_v1_disabled', 'true'):
-            with patch('Tea.core.TeaCore.do_action', return_value=response):
+            with patch('darabonba.core.DaraCore.do_action', return_value=response):
                 provider = EcsRamRoleCredentialsProvider(
                     role_name=self.role_name,
                     http_options=self.http_options
@@ -298,12 +298,12 @@ class TestEcsRamRoleCredentialsProvider(unittest.TestCase):
         """
         Test case 12: HTTP request error raises CredentialException
         """
-        response = TeaResponse()
+        response = DaraResponse()
         response.status_code = 400
         response.body = b'HTTP request failed'
 
         with patch('alibabacloud_credentials.provider.ecs_ram_role.au.environment_imds_v1_disabled', 'true'):
-            with patch('Tea.core.TeaCore.do_action', return_value=response):
+            with patch('darabonba.core.DaraCore.do_action', return_value=response):
                 provider = EcsRamRoleCredentialsProvider(
                     role_name=self.role_name,
                     http_options=self.http_options
@@ -321,12 +321,12 @@ class TestEcsRamRoleCredentialsProvider(unittest.TestCase):
         Test case 13: Valid input, successfully retrieves metadata token asynchronously
         """
         response_body = self.metadata_token
-        response = TeaResponse()
+        response = DaraResponse()
         response.status_code = 200
         response.body = response_body.encode('utf-8')
 
         with patch('alibabacloud_credentials.provider.ecs_ram_role.au.environment_imds_v1_disabled', 'true'):
-            with patch('Tea.core.TeaCore.async_do_action', AsyncMock(return_value=response)):
+            with patch('darabonba.core.DaraCore.async_do_action', AsyncMock(return_value=response)):
                 provider = EcsRamRoleCredentialsProvider(
                     role_name=self.role_name,
                     http_options=self.http_options
@@ -344,12 +344,12 @@ class TestEcsRamRoleCredentialsProvider(unittest.TestCase):
         """
         Test case 14: HTTP request error raises CredentialException asynchronously
         """
-        response = TeaResponse()
+        response = DaraResponse()
         response.status_code = 400
         response.body = b'HTTP request failed'
 
         with patch('alibabacloud_credentials.provider.ecs_ram_role.au.environment_imds_v1_disabled', 'true'):
-            with patch('Tea.core.TeaCore.async_do_action', AsyncMock(return_value=response)):
+            with patch('darabonba.core.DaraCore.async_do_action', AsyncMock(return_value=response)):
                 provider = EcsRamRoleCredentialsProvider(
                     role_name=self.role_name,
                     http_options=self.http_options
@@ -371,12 +371,12 @@ class TestEcsRamRoleCredentialsProvider(unittest.TestCase):
         Test case 15: Valid input, successfully retrieves role name
         """
         response_body = self.role_name
-        response = TeaResponse()
+        response = DaraResponse()
         response.status_code = 200
         response.body = response_body.encode('utf-8')
 
         with patch('alibabacloud_credentials.provider.ecs_ram_role.au.environment_ecs_metadata_disabled', 'false'):
-            with patch('Tea.core.TeaCore.do_action', return_value=response):
+            with patch('darabonba.core.DaraCore.do_action', return_value=response):
                 provider = EcsRamRoleCredentialsProvider(
                     role_name=self.role_name,
                     disable_imds_v1=self.disable_imds_v1,
@@ -391,12 +391,12 @@ class TestEcsRamRoleCredentialsProvider(unittest.TestCase):
         """
         Test case 16: HTTP request error raises CredentialException
         """
-        response = TeaResponse()
+        response = DaraResponse()
         response.status_code = 400
         response.body = b'HTTP request failed'
 
         with patch('alibabacloud_credentials.provider.ecs_ram_role.au.environment_ecs_metadata_disabled', 'false'):
-            with patch('Tea.core.TeaCore.do_action', return_value=response):
+            with patch('darabonba.core.DaraCore.do_action', return_value=response):
                 provider = EcsRamRoleCredentialsProvider(
                     role_name=self.role_name,
                     disable_imds_v1=self.disable_imds_v1,
@@ -415,12 +415,12 @@ class TestEcsRamRoleCredentialsProvider(unittest.TestCase):
         Test case 17: Valid input, successfully retrieves role name asynchronously
         """
         response_body = self.role_name
-        response = TeaResponse()
+        response = DaraResponse()
         response.status_code = 200
         response.body = response_body.encode('utf-8')
 
         with patch('alibabacloud_credentials.provider.ecs_ram_role.au.environment_ecs_metadata_disabled', 'false'):
-            with patch('Tea.core.TeaCore.async_do_action', AsyncMock(return_value=response)):
+            with patch('darabonba.core.DaraCore.async_do_action', AsyncMock(return_value=response)):
                 provider = EcsRamRoleCredentialsProvider(
                     role_name=self.role_name,
                     disable_imds_v1=self.disable_imds_v1,
@@ -439,12 +439,12 @@ class TestEcsRamRoleCredentialsProvider(unittest.TestCase):
         """
         Test case 18: HTTP request error raises CredentialException asynchronously
         """
-        response = TeaResponse()
+        response = DaraResponse()
         response.status_code = 400
         response.body = b'HTTP request failed'
 
         with patch('alibabacloud_credentials.provider.ecs_ram_role.au.environment_ecs_metadata_disabled', 'false'):
-            with patch('Tea.core.TeaCore.async_do_action', AsyncMock(return_value=response)):
+            with patch('darabonba.core.DaraCore.async_do_action', AsyncMock(return_value=response)):
                 provider = EcsRamRoleCredentialsProvider(
                     role_name=self.role_name,
                     disable_imds_v1=self.disable_imds_v1,

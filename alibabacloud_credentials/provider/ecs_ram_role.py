@@ -7,7 +7,7 @@ import logging
 from alibabacloud_credentials.provider.refreshable import Credentials, RefreshResult, StaleValueBehavior, \
     RefreshCachedSupplier, NonBlocking
 from alibabacloud_credentials.http import HttpOptions
-from Tea.core import TeaCore
+from darabonba.core import DaraCore
 from apscheduler.schedulers.background import BackgroundScheduler
 from alibabacloud_credentials_api import ICredentialsProvider
 from alibabacloud_credentials.utils import auth_util as au
@@ -90,7 +90,7 @@ class EcsRamRoleCredentialsProvider(ICredentialsProvider):
             tea_request.headers['X-aliyun-ecs-metadata-token'] = metadata_token
         if not url:
             tea_request.pathname = self.__url_in_ecs_metadata
-        response = TeaCore.do_action(tea_request, self._runtime_options)
+        response = DaraCore.do_action(tea_request, self._runtime_options)
         if response.status_code != 200:
             raise CredentialException(self.__ecs_metadata_fetch_error_msg + ' HttpCode=' + str(response.status_code))
         return response.body.decode('utf-8')
@@ -103,7 +103,7 @@ class EcsRamRoleCredentialsProvider(ICredentialsProvider):
             tea_request.headers['X-aliyun-ecs-metadata-token'] = metadata_token
         if not url:
             tea_request.pathname = self.__url_in_ecs_metadata
-        response = await TeaCore.async_do_action(tea_request, self._runtime_options)
+        response = await DaraCore.async_do_action(tea_request, self._runtime_options)
         if response.status_code != 200:
             raise CredentialException(self.__ecs_metadata_fetch_error_msg + ' HttpCode=' + str(response.status_code))
         return response.body.decode('utf-8')
@@ -117,7 +117,7 @@ class EcsRamRoleCredentialsProvider(ICredentialsProvider):
         if not url:
             tea_request.pathname = self.__url_in_ecs_metadata_token
         try:
-            response = TeaCore.do_action(tea_request, self._runtime_options)
+            response = DaraCore.do_action(tea_request, self._runtime_options)
             if response.status_code != 200:
                 raise CredentialException(
                     self.__ecs_metadata_token_fetch_error_msg + ' HttpCode=' + str(response.status_code))
@@ -136,7 +136,7 @@ class EcsRamRoleCredentialsProvider(ICredentialsProvider):
         if not url:
             tea_request.pathname = self.__url_in_ecs_metadata_token
         try:
-            response = await TeaCore.async_do_action(tea_request, self._runtime_options)
+            response = await DaraCore.async_do_action(tea_request, self._runtime_options)
             if response.status_code != 200:
                 raise CredentialException(
                     self.__ecs_metadata_token_fetch_error_msg + ' HttpCode=' + str(response.status_code))
@@ -158,7 +158,7 @@ class EcsRamRoleCredentialsProvider(ICredentialsProvider):
         if not url:
             tea_request.pathname = self.__url_in_ecs_metadata + role_name
         # request
-        response = TeaCore.do_action(tea_request, self._runtime_options)
+        response = DaraCore.do_action(tea_request, self._runtime_options)
 
         if response.status_code != 200:
             raise CredentialException(self.__ecs_metadata_fetch_error_msg + ' HttpCode=' + str(response.status_code))
@@ -202,7 +202,7 @@ class EcsRamRoleCredentialsProvider(ICredentialsProvider):
             tea_request.pathname = self.__url_in_ecs_metadata + role_name
 
         # request
-        response = await TeaCore.async_do_action(tea_request, self._runtime_options)
+        response = await DaraCore.async_do_action(tea_request, self._runtime_options)
 
         if response.status_code != 200:
             raise CredentialException(self.__ecs_metadata_fetch_error_msg + ' HttpCode=' + str(response.status_code))

@@ -9,7 +9,7 @@ from alibabacloud_credentials.provider.oidc import (
     CredentialException
 )
 from alibabacloud_credentials.http import HttpOptions
-from Tea.core import TeaResponse
+from darabonba.core import DaraResponse
 
 
 class TestOIDCRoleArnCredentialsProvider(unittest.TestCase):
@@ -225,12 +225,12 @@ class TestOIDCRoleArnCredentialsProvider(unittest.TestCase):
                 "Expiration": "2023-12-31T23:59:59Z"
             }
         })
-        response = TeaResponse()
+        response = DaraResponse()
         response.status_code = 200
         response.body = response_body.encode('utf-8')
 
         with patch('alibabacloud_credentials.provider.oidc._get_token', return_value=token):
-            with patch('Tea.core.TeaCore.do_action', return_value=response):
+            with patch('darabonba.core.DaraCore.do_action', return_value=response):
                 provider = OIDCRoleArnCredentialsProvider(
                     role_arn=self.role_arn,
                     oidc_provider_arn=self.oidc_provider_arn,
@@ -282,12 +282,12 @@ class TestOIDCRoleArnCredentialsProvider(unittest.TestCase):
         Test case 13: HTTP request error raises CredentialException
         """
         token = "test_token"
-        response = TeaResponse()
+        response = DaraResponse()
         response.status_code = 400
         response.body = b'HTTP request failed'
 
         with patch('alibabacloud_credentials.provider.oidc._get_token', return_value=token):
-            with patch('Tea.core.TeaCore.do_action', return_value=response):
+            with patch('darabonba.core.DaraCore.do_action', return_value=response):
                 provider = OIDCRoleArnCredentialsProvider(
                     role_arn=self.role_arn,
                     oidc_provider_arn=self.oidc_provider_arn,
@@ -315,12 +315,12 @@ class TestOIDCRoleArnCredentialsProvider(unittest.TestCase):
         response_body = json.dumps({
             "Error": "Invalid request"
         })
-        response = TeaResponse()
+        response = DaraResponse()
         response.status_code = 200
         response.body = response_body.encode('utf-8')
 
         with patch('alibabacloud_credentials.provider.oidc._get_token', return_value=token):
-            with patch('Tea.core.TeaCore.do_action', return_value=response):
+            with patch('darabonba.core.DaraCore.do_action', return_value=response):
                 provider = OIDCRoleArnCredentialsProvider(
                     role_arn=self.role_arn,
                     oidc_provider_arn=self.oidc_provider_arn,
@@ -352,12 +352,12 @@ class TestOIDCRoleArnCredentialsProvider(unittest.TestCase):
                 "Expiration": "2023-12-31T23:59:59Z"
             }
         })
-        response = TeaResponse()
+        response = DaraResponse()
         response.status_code = 200
         response.body = response_body.encode('utf-8')
 
         with patch('alibabacloud_credentials.provider.oidc._get_token_async', AsyncMock(return_value=token)):
-            with patch('Tea.core.TeaCore.async_do_action', AsyncMock(return_value=response)):
+            with patch('darabonba.core.DaraCore.async_do_action', AsyncMock(return_value=response)):
                 provider = OIDCRoleArnCredentialsProvider(
                     role_arn=self.role_arn,
                     oidc_provider_arn=self.oidc_provider_arn,
@@ -421,12 +421,12 @@ class TestOIDCRoleArnCredentialsProvider(unittest.TestCase):
         Test case 17: HTTP request error raises CredentialException asynchronously
         """
         token = "test_token"
-        response = TeaResponse()
+        response = DaraResponse()
         response.status_code = 400
         response.body = b'HTTP request failed'
 
         with patch('alibabacloud_credentials.provider.oidc._get_token_async', AsyncMock(return_value=token)):
-            with patch('Tea.core.TeaCore.async_do_action', AsyncMock(return_value=response)):
+            with patch('darabonba.core.DaraCore.async_do_action', AsyncMock(return_value=response)):
                 provider = OIDCRoleArnCredentialsProvider(
                     role_arn=self.role_arn,
                     oidc_provider_arn=self.oidc_provider_arn,
@@ -458,12 +458,12 @@ class TestOIDCRoleArnCredentialsProvider(unittest.TestCase):
         response_body = json.dumps({
             "Error": "Invalid request"
         })
-        response = TeaResponse()
+        response = DaraResponse()
         response.status_code = 200
         response.body = response_body.encode('utf-8')
 
         with patch('alibabacloud_credentials.provider.oidc._get_token_async', AsyncMock(return_value=token)):
-            with patch('Tea.core.TeaCore.async_do_action', AsyncMock(return_value=response)):
+            with patch('darabonba.core.DaraCore.async_do_action', AsyncMock(return_value=response)):
                 provider = OIDCRoleArnCredentialsProvider(
                     role_arn=self.role_arn,
                     oidc_provider_arn=self.oidc_provider_arn,
