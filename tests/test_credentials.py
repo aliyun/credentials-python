@@ -4,7 +4,7 @@ from unittest.mock import patch, MagicMock, AsyncMock
 import asyncio
 from alibabacloud_credentials import credentials, providers
 from alibabacloud_credentials.exceptions import CredentialException
-from Tea.core import TeaResponse
+from darabonba.core import DaraResponse
 
 
 class TestCredentials(unittest.TestCase):
@@ -260,11 +260,11 @@ class TestCredentials(unittest.TestCase):
             "SecurityToken": "test_security_token",
             "Expiration": "2023-12-31T23:59:59Z"
         })
-        response = TeaResponse()
+        response = DaraResponse()
         response.status_code = 200
         response.body = response_body.encode('utf-8')
 
-        with patch('Tea.core.TeaCore.do_action', return_value=response):
+        with patch('darabonba.core.DaraCore.do_action', return_value=response):
             credentials_uri = 'http://localhost:6666/test'
             cred = credentials.CredentialsURICredential(credentials_uri)
 
@@ -285,11 +285,11 @@ class TestCredentials(unittest.TestCase):
             "SecurityToken": "test_security_token",
             "Expiration": "2023-12-31T23:59:59Z"
         })
-        response = TeaResponse()
+        response = DaraResponse()
         response.status_code = 200
         response.body = response_body.encode('utf-8')
 
-        with patch('Tea.core.TeaCore.do_action', return_value=response):
+        with patch('darabonba.core.DaraCore.do_action', return_value=response):
             credentials_uri = 'http://localhost:6666/test'
             cred = credentials.CredentialsURICredential(credentials_uri)
 
@@ -306,11 +306,11 @@ class TestCredentials(unittest.TestCase):
         """
         Test case 3: HTTP request error raises CredentialException
         """
-        response = TeaResponse()
+        response = DaraResponse()
         response.status_code = 400
         response.body = b'HTTP request failed'
 
-        with patch('Tea.core.TeaCore.do_action', return_value=response):
+        with patch('darabonba.core.DaraCore.do_action', return_value=response):
             credentials_uri = 'http://localhost:6666/test'
             cred = credentials.CredentialsURICredential(credentials_uri)
 
@@ -329,11 +329,11 @@ class TestCredentials(unittest.TestCase):
             "Code": "Failure",
             "Message": "Invalid request"
         })
-        response = TeaResponse()
+        response = DaraResponse()
         response.status_code = 200
         response.body = response_body.encode('utf-8')
 
-        with patch('Tea.core.TeaCore.do_action', return_value=response):
+        with patch('darabonba.core.DaraCore.do_action', return_value=response):
             credentials_uri = 'http://localhost:6666/test'
             cred = credentials.CredentialsURICredential(credentials_uri)
 
@@ -355,11 +355,11 @@ class TestCredentials(unittest.TestCase):
             "SecurityToken": "test_security_token",
             "Expiration": "2023-12-31T23:59:59Z"
         })
-        response = TeaResponse()
+        response = DaraResponse()
         response.status_code = 200
         response.body = response_body.encode('utf-8')
 
-        with patch('Tea.core.TeaCore.async_do_action', AsyncMock(return_value=response)):
+        with patch('darabonba.core.DaraCore.async_do_action', AsyncMock(return_value=response)):
             credentials_uri = 'http://localhost:6666/test'
             cred = credentials.CredentialsURICredential(credentials_uri)
 
@@ -384,11 +384,11 @@ class TestCredentials(unittest.TestCase):
             "SecurityToken": "test_security_token",
             "Expiration": "2023-12-31T23:59:59Z"
         })
-        response = TeaResponse()
+        response = DaraResponse()
         response.status_code = 200
         response.body = response_body.encode('utf-8')
 
-        with patch('Tea.core.TeaCore.async_do_action', AsyncMock(return_value=response)):
+        with patch('darabonba.core.DaraCore.async_do_action', AsyncMock(return_value=response)):
             credentials_uri = 'http://localhost:6666/test'
             cred = credentials.CredentialsURICredential(credentials_uri)
 
@@ -408,11 +408,11 @@ class TestCredentials(unittest.TestCase):
         """
         Test case 7: HTTP request error raises CredentialException
         """
-        response = TeaResponse()
+        response = DaraResponse()
         response.status_code = 400
         response.body = b'HTTP request failed'
 
-        with patch('Tea.core.TeaCore.async_do_action', AsyncMock(return_value=response)):
+        with patch('darabonba.core.DaraCore.async_do_action', AsyncMock(return_value=response)):
             credentials_uri = 'http://localhost:6666/test'
             cred = credentials.CredentialsURICredential(credentials_uri)
 
@@ -434,11 +434,11 @@ class TestCredentials(unittest.TestCase):
             "Code": "Failure",
             "Message": "Invalid request"
         })
-        response = TeaResponse()
+        response = DaraResponse()
         response.status_code = 200
         response.body = response_body.encode('utf-8')
 
-        with patch('Tea.core.TeaCore.async_do_action', AsyncMock(return_value=response)):
+        with patch('darabonba.core.DaraCore.async_do_action', AsyncMock(return_value=response)):
             credentials_uri = 'http://localhost:6666/test'
             cred = credentials.CredentialsURICredential(credentials_uri)
 

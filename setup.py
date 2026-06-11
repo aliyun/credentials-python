@@ -37,7 +37,7 @@ with open("README.md", encoding="utf-8") as fp:
     LONG_DESCRIPTION = fp.read()
 
 install_requires = [
-    'alibabacloud-tea>=0.4.0',
+    'darabonba-core>=1.0.0',
     'alibabacloud_credentials_api>=1.0.0, <2.0.0'
 ]
 

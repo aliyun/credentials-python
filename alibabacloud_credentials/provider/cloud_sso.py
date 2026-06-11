@@ -5,7 +5,7 @@ from urllib.parse import urlparse
 
 from alibabacloud_credentials.provider.refreshable import Credentials, RefreshResult, RefreshCachedSupplier
 from alibabacloud_credentials.http import HttpOptions
-from Tea.core import TeaCore
+from darabonba.core import DaraCore
 from alibabacloud_credentials_api import ICredentialsProvider
 from alibabacloud_credentials.utils import parameter_helper as ph
 from alibabacloud_credentials.exceptions import CredentialException
@@ -78,7 +78,7 @@ class CloudSSOCredentialsProvider(ICredentialsProvider):
         tea_request.headers['Content-Type'] = 'application/json'
         tea_request.headers['Authorization'] = f'Bearer {self._access_token}'
 
-        response = TeaCore.do_action(tea_request, self._runtime_options)
+        response = DaraCore.do_action(tea_request, self._runtime_options)
 
         if response.status_code != 200:
             raise CredentialException(
@@ -126,7 +126,7 @@ class CloudSSOCredentialsProvider(ICredentialsProvider):
         tea_request.headers['Content-Type'] = 'application/json'
         tea_request.headers['Authorization'] = f'Bearer {self._access_token}'
 
-        response = await TeaCore.async_do_action(tea_request, self._runtime_options)
+        response = await DaraCore.async_do_action(tea_request, self._runtime_options)
 
         if response.status_code != 200:
             raise CredentialException(

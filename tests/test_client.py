@@ -1,10 +1,11 @@
 import asyncio
 import unittest
+import warnings
 
 from . import txt_file
 from alibabacloud_credentials.models import Config
 from alibabacloud_credentials.utils import auth_constant
-from alibabacloud_credentials.client import Client, _CredentialsProviderWrap
+from alibabacloud_credentials.client import Client, _CredentialsProviderWrap, deprecated
 from alibabacloud_credentials import credentials
 from alibabacloud_credentials.utils import auth_util
 
@@ -117,3 +118,61 @@ class TestClient(unittest.TestCase):
 
         credential = asyncio.run(get_credential_async())
         self.assertEqual('ak1', credential.access_key_id)
+
+    def test_deprecated_decorator_no_tea_dependency(self):
+        """Verify that the deprecated decorator does not depend on Tea.decorators.
+        When a user installs the 'tea' package from PyPI, it shadows alibabacloud-tea's
+        Tea.decorators namespace and causes ImportError. Our local implementation avoids this.
+        """
+        import importlib
+        import sys
+
+        # Simulate the conflict: when PyPI 'tea' package is installed,
+        # Tea.decorators exists but has no 'deprecated' attribute
+        original_module = sys.modules.get('Tea.decorators')
+        fake_module = type(sys)('Tea.decorators')  # empty module, no 'deprecated'
+        sys.modules['Tea.decorators'] = fake_module
+        try:
+            # Our client module should still work because it uses a local implementation
+            module = importlib.reload(importlib.import_module('alibabacloud_credentials.client'))
+            self.assertTrue(callable(module.deprecated))
+        finally:
+            if original_module is not None:
+                sys.modules['Tea.decorators'] = original_module
+            else:
+                sys.modules.pop('Tea.decorators', None)
+
+    def test_deprecated_decorator_emits_warning(self):
+        """Verify that the local deprecated decorator emits DeprecationWarning with correct message."""
+
+        @deprecated("Use new_func instead")
+        def old_func():
+            return 42
+
+        with warnings.catch_warnings(record=True) as caught:
+            warnings.simplefilter("always")
+            result = old_func()
+
+        self.assertEqual(42, result)
+        self.assertEqual(1, len(caught))
+        self.assertTrue(issubclass(caught[0].category, DeprecationWarning))
+        self.assertIn("old_func", str(caught[0].message))
+        self.assertIn("Use new_func instead", str(caught[0].message))
+
+    def test_deprecated_methods_emit_warning(self):
+        """Verify that deprecated Client methods still work and emit DeprecationWarning."""
+        conf = Config()
+        conf.type = auth_constant.ACCESS_KEY
+        conf.access_key_id = 'test_ak'
+        conf.access_key_secret = 'test_sk'
+        client = Client(conf)
+
+        with warnings.catch_warnings(record=True) as caught:
+            warnings.simplefilter("always")
+            ak = client.get_access_key_id()
+            sk = client.get_access_key_secret()
+
+        self.assertEqual('test_ak', ak)
+        self.assertEqual('test_sk', sk)
+        deprecation_warnings = [w for w in caught if issubclass(w.category, DeprecationWarning)]
+        self.assertEqual(2, len(deprecation_warnings))

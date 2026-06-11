@@ -3,7 +3,7 @@ import json
 import time
 from urllib.parse import urlparse, parse_qs
 
-from Tea.core import TeaCore
+from darabonba.core import DaraCore
 
 from alibabacloud_credentials.utils import auth_constant as ac
 from alibabacloud_credentials.utils import parameter_helper as ph
@@ -362,7 +362,7 @@ class CredentialsURICredential(Credential):
         for key, values in parse_qs(r.query).items():
             for value in values:
                 tea_request.query[key] = value
-        response = TeaCore.do_action(tea_request)
+        response = DaraCore.do_action(tea_request)
         if response.status_code != 200:
             raise CredentialException(
                 "Get credentials from " + self.credentials_uri + " failed,  HttpCode=" + str(response.status_code))
@@ -395,7 +395,7 @@ class CredentialsURICredential(Credential):
         tea_request.method = 'GET'
         tea_request.pathname = r.path
         tea_request.query = parse_qs(r.query)
-        response = await TeaCore.async_do_action(tea_request)
+        response = await DaraCore.async_do_action(tea_request)
         if response.status_code != 200:
             raise CredentialException(
                 "Get credentials from " + self.credentials_uri + " failed,  HttpCode=" + str(response.status_code))

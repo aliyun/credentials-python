@@ -14,7 +14,7 @@ from alibabacloud_credentials.provider import (StaticAKCredentialsProvider,
                                                URLCredentialsProvider,
                                                DefaultCredentialsProvider)
 from alibabacloud_credentials.utils import auth_constant as ac
-from Tea.decorators import deprecated
+from darabonba.decorators import deprecated
 
 
 def attribute_error_return_none(f):

@@ -163,7 +163,7 @@ class TestCloudSSOCredentialsProvider(unittest.TestCase):
         self.assertEqual(provider._runtime_options['connectTimeout'], CloudSSOCredentialsProvider.DEFAULT_CONNECT_TIMEOUT)
         self.assertEqual(provider._runtime_options['readTimeout'], CloudSSOCredentialsProvider.DEFAULT_READ_TIMEOUT)
 
-    @patch('alibabacloud_credentials.provider.cloud_sso.TeaCore.do_action')
+    @patch('alibabacloud_credentials.provider.cloud_sso.DaraCore.do_action')
     def test_get_credentials_success(self, mock_do_action):
         """
         Test case 9: Valid input, successfully retrieves credentials
@@ -199,7 +199,7 @@ class TestCloudSSOCredentialsProvider(unittest.TestCase):
         self.assertEqual(request_body['AccountId'], self.account_id)
         self.assertEqual(request_body['AccessConfigurationId'], self.access_config)
 
-    @patch('alibabacloud_credentials.provider.cloud_sso.TeaCore.async_do_action')
+    @patch('alibabacloud_credentials.provider.cloud_sso.DaraCore.async_do_action')
     def test_get_credentials_async_success(self, mock_async_do_action):
         """
         Test case 10: Valid input, successfully retrieves credentials asynchronously
@@ -226,7 +226,7 @@ class TestCloudSSOCredentialsProvider(unittest.TestCase):
         self.assertEqual(credentials.get_security_token(), self.security_token)
         self.assertEqual(credentials.get_provider_name(), "cloud_sso")
 
-    @patch('alibabacloud_credentials.provider.cloud_sso.TeaCore.do_action')
+    @patch('alibabacloud_credentials.provider.cloud_sso.DaraCore.do_action')
     def test_get_credentials_http_error(self, mock_do_action):
         """
         Test case 11: HTTP error response raises CredentialException
@@ -249,7 +249,7 @@ class TestCloudSSOCredentialsProvider(unittest.TestCase):
 
         self.assertIn("error refreshing credentials from sso, http_code: 400", str(context.exception))
 
-    @patch('alibabacloud_credentials.provider.cloud_sso.TeaCore.do_action')
+    @patch('alibabacloud_credentials.provider.cloud_sso.DaraCore.do_action')
     def test_get_credentials_missing_cloud_credential(self, mock_do_action):
         """
         Test case 12: Missing CloudCredential in response raises CredentialException
@@ -272,7 +272,7 @@ class TestCloudSSOCredentialsProvider(unittest.TestCase):
 
         self.assertIn("error retrieving credentials from sso result", str(context.exception))
 
-    @patch('alibabacloud_credentials.provider.cloud_sso.TeaCore.do_action')
+    @patch('alibabacloud_credentials.provider.cloud_sso.DaraCore.do_action')
     def test_get_credentials_missing_required_fields(self, mock_do_action):
         """
         Test case 13: Missing required fields in CloudCredential raises CredentialException
@@ -300,7 +300,7 @@ class TestCloudSSOCredentialsProvider(unittest.TestCase):
 
         self.assertIn("error retrieving credentials from sso result", str(context.exception))
 
-    @patch('alibabacloud_credentials.provider.cloud_sso.TeaCore.do_action')
+    @patch('alibabacloud_credentials.provider.cloud_sso.DaraCore.do_action')
     def test_get_credentials_invalid_json(self, mock_do_action):
         """
         Test case 14: Invalid JSON response raises JSONDecodeError
@@ -358,7 +358,7 @@ class TestCloudSSOCredentialsProvider(unittest.TestCase):
             expected_stale_time = 1672531199 + 60 * 60  # current time + 1 hour
             self.assertEqual(stale_time, expected_stale_time)
 
-    @patch('alibabacloud_credentials.provider.cloud_sso.TeaCore.do_action')
+    @patch('alibabacloud_credentials.provider.cloud_sso.DaraCore.do_action')
     def test_credentials_caching(self, mock_do_action):
         """
         Test case 18: Credentials are cached and not refreshed on subsequent calls
@@ -384,10 +384,10 @@ class TestCloudSSOCredentialsProvider(unittest.TestCase):
         self.assertEqual(credentials1.get_access_key_secret(), credentials2.get_access_key_secret())
         self.assertEqual(credentials1.get_security_token(), credentials2.get_security_token())
         
-        # But TeaCore.do_action should only be called once due to caching
+        # But DaraCore.do_action should only be called once due to caching
         self.assertEqual(mock_do_action.call_count, 1)
 
-    @patch('alibabacloud_credentials.provider.cloud_sso.TeaCore.do_action')
+    @patch('alibabacloud_credentials.provider.cloud_sso.DaraCore.do_action')
     def test_url_parsing(self, mock_do_action):
         """
         Test case 19: URL parsing works correctly for different URL formats
@@ -427,7 +427,7 @@ class TestCloudSSOCredentialsProvider(unittest.TestCase):
             else:
                 self.assertEqual(tea_request.protocol, "http")
 
-    @patch('alibabacloud_credentials.provider.cloud_sso.TeaCore.do_action')
+    @patch('alibabacloud_credentials.provider.cloud_sso.DaraCore.do_action')
     def test_expiration_time_parsing(self, mock_do_action):
         """
         Test case 20: Expiration time is correctly parsed from ISO format

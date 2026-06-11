@@ -107,7 +107,7 @@ class TestProfileCredentialsProvider(unittest.TestCase):
 
                         self.assertIn("error refreshing credentials from oidc_role_arn", str(context.exception))
 
-    @patch('Tea.core.TeaCore.do_action')
+    @patch('darabonba.core.DaraCore.do_action')
     def test_get_credentials_valid_ecs_ram_role(self, mock_do_action):
         """
         Test case 5: Valid input, successfully retrieves credentials for ecs_ram_role type
@@ -304,7 +304,7 @@ class TestProfileCredentialsProvider(unittest.TestCase):
                         'oidc_token_file_path or environment variable ALIBABA_CLOUD_OIDC_TOKEN_FILE cannot be empty',
                         str(context.exception))
 
-    @patch('Tea.core.TeaCore.do_action')
+    @patch('darabonba.core.DaraCore.do_action')
     def test_get_credentials_missing_role_name(self, mock_do_action):
         """
         Test case 15: Missing role_name raises CredentialException

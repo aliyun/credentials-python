@@ -9,7 +9,7 @@ import datetime
 import platform
 
 import alibabacloud_credentials
-from Tea.request import TeaRequest
+from darabonba.request import DaraRequest
 
 TIME_ZONE = "UTC"
 FORMAT_ISO_8601 = "yyyy-MM-dd'T'HH:mm:ss'Z'"
@@ -20,7 +20,7 @@ ALGORITHM_NAME = "HmacSHA1"
 
 
 def get_new_request():
-    request = TeaRequest()
+    request = DaraRequest()
     request.headers['user-agent'] = f'AlibabaCloud ({platform.system()}; {platform.machine()}) ' \
                                     f'Python/{platform.python_version()} ' \
                                     f'Credentials/{alibabacloud_credentials.__version__} ' \

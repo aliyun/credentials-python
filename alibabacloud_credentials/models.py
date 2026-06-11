@@ -1,9 +1,9 @@
 # -*- coding: utf-8 -*-
 # This file is auto-generated, don't edit it. Thanks.
-from Tea.model import TeaModel
+from darabonba.model import DaraModel
 
 
-class Config(TeaModel):
+class Config(DaraModel):
     """
     Model for initializing credential
     """
@@ -230,7 +230,7 @@ class Config(TeaModel):
         return self
 
 
-class CredentialModel(TeaModel):
+class CredentialModel(DaraModel):
     def __init__(
             self,
             access_key_id: str = None,

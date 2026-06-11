@@ -5,7 +5,7 @@ import os
 import time
 
 import requests
-from Tea.core import TeaCore
+from darabonba.core import DaraCore
 
 from alibabacloud_credentials import credentials
 from alibabacloud_credentials.exceptions import CredentialException
@@ -126,7 +126,7 @@ class EcsRamRoleCredentialProvider(AlibabaCloudCredentialsProvider):
             tea_request.headers['X-aliyun-ecs-metadata-token'] = metadata_token
         if not url:
             tea_request.pathname = self.__url_in_ecs_metadata
-        response = TeaCore.do_action(tea_request)
+        response = DaraCore.do_action(tea_request)
         if response.status_code != 200:
             raise CredentialException(self.__ecs_metadata_fetch_error_msg + " HttpCode=" + str(response.status_code))
         self.role_name = response.body.decode('utf-8')
@@ -139,7 +139,7 @@ class EcsRamRoleCredentialProvider(AlibabaCloudCredentialsProvider):
             tea_request.headers['X-aliyun-ecs-metadata-token'] = metadata_token
         if not url:
             tea_request.pathname = self.__url_in_ecs_metadata
-        response = await TeaCore.async_do_action(tea_request)
+        response = await DaraCore.async_do_action(tea_request)
         if response.status_code != 200:
             raise CredentialException(self.__ecs_metadata_fetch_error_msg + " HttpCode=" + str(response.status_code))
         self.role_name = response.body.decode('utf-8')
@@ -152,7 +152,7 @@ class EcsRamRoleCredentialProvider(AlibabaCloudCredentialsProvider):
         if not url:
             tea_request.pathname = self.__url_in_ecs_metadata_token
         try:
-            response = TeaCore.do_action(tea_request)
+            response = DaraCore.do_action(tea_request)
             if response.status_code != 200:
                 raise CredentialException(
                     self.__ecs_metadata_token_fetch_error_msg + " HttpCode=" + str(response.status_code))
@@ -170,7 +170,7 @@ class EcsRamRoleCredentialProvider(AlibabaCloudCredentialsProvider):
         if not url:
             tea_request.pathname = self.__url_in_ecs_metadata_token
         try:
-            response = await TeaCore.async_do_action(tea_request)
+            response = await DaraCore.async_do_action(tea_request)
             if response.status_code != 200:
                 raise CredentialException(
                     self.__ecs_metadata_token_fetch_error_msg + " HttpCode=" + str(response.status_code))
@@ -189,7 +189,7 @@ class EcsRamRoleCredentialProvider(AlibabaCloudCredentialsProvider):
         if not url:
             tea_request.pathname = self.__url_in_ecs_metadata + self.role_name
         # request
-        response = TeaCore.do_action(tea_request)
+        response = DaraCore.do_action(tea_request)
 
         if response.status_code != 200:
             raise CredentialException(self.__ecs_metadata_fetch_error_msg + " HttpCode=" + str(response.status_code))
@@ -226,7 +226,7 @@ class EcsRamRoleCredentialProvider(AlibabaCloudCredentialsProvider):
             tea_request.pathname = self.__url_in_ecs_metadata + self.role_name
 
         # request
-        response = await TeaCore.async_do_action(tea_request)
+        response = await DaraCore.async_do_action(tea_request)
 
         if response.status_code != 200:
             raise CredentialException(self.__ecs_metadata_fetch_error_msg + " HttpCode=" + str(response.status_code))
@@ -303,7 +303,7 @@ class RamRoleArnCredentialProvider(AlibabaCloudCredentialsProvider):
         tea_request.protocol = 'https'
         tea_request.headers['host'] = self.sts_endpoint
         # request
-        response = TeaCore.do_action(tea_request)
+        response = DaraCore.do_action(tea_request)
         if response.status_code == 200:
             dic = json.loads(response.body.decode('utf-8'))
             if "Credentials" in dic:
@@ -343,7 +343,7 @@ class RamRoleArnCredentialProvider(AlibabaCloudCredentialsProvider):
         tea_request.protocol = 'https'
         tea_request.headers['host'] = self.sts_endpoint
         # request
-        response = await TeaCore.async_do_action(tea_request)
+        response = await DaraCore.async_do_action(tea_request)
         if response.status_code == 200:
             dic = json.loads(response.body.decode('utf-8'))
             if "Credentials" in dic:
@@ -413,7 +413,7 @@ class OIDCRoleArnCredentialProvider(AlibabaCloudCredentialsProvider):
         tea_request.protocol = 'https'
         tea_request.headers['host'] = self.sts_endpoint
         # request
-        response = TeaCore.do_action(tea_request)
+        response = DaraCore.do_action(tea_request)
         if response.status_code == 200:
             dic = json.loads(response.body.decode('utf-8'))
             if "Credentials" in dic:
@@ -450,7 +450,7 @@ class OIDCRoleArnCredentialProvider(AlibabaCloudCredentialsProvider):
         tea_request.protocol = 'https'
         tea_request.headers['host'] = self.sts_endpoint
         # request
-        response = await TeaCore.async_do_action(tea_request)
+        response = await DaraCore.async_do_action(tea_request)
         if response.status_code == 200:
             dic = json.loads(response.body.decode('utf-8'))
             if "Credentials" in dic:
@@ -496,7 +496,7 @@ class RsaKeyPairCredentialProvider(AlibabaCloudCredentialsProvider):
         tea_request.protocol = 'https'
         tea_request.headers['host'] = turl if turl else 'sts.aliyuncs.com'
         # request
-        response = await TeaCore.async_do_action(tea_request)
+        response = await DaraCore.async_do_action(tea_request)
         if response.status_code == 200:
             dic = json.loads(response.body.decode('utf-8'))
             if "SessionAccessKey" in dic:
@@ -531,7 +531,7 @@ class RsaKeyPairCredentialProvider(AlibabaCloudCredentialsProvider):
         tea_request.protocol = 'https'
         tea_request.headers['host'] = turl if turl else 'sts.aliyuncs.com'
         # request
-        response = TeaCore.do_action(tea_request)
+        response = DaraCore.do_action(tea_request)
         if response.status_code == 200:
             dic = json.loads(response.body.decode('utf-8'))
             if "SessionAccessKey" in dic:

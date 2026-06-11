@@ -9,7 +9,7 @@ from alibabacloud_credentials.provider.ram_role_arn import (
     CredentialException
 )
 from alibabacloud_credentials.http import HttpOptions
-from Tea.core import TeaResponse
+from darabonba.core import DaraResponse
 
 
 class TestRamRoleArnCredentialsProvider(unittest.TestCase):
@@ -178,11 +178,11 @@ class TestRamRoleArnCredentialsProvider(unittest.TestCase):
                 "Expiration": "2023-12-31T23:59:59Z"
             }
         })
-        response = TeaResponse()
+        response = DaraResponse()
         response.status_code = 200
         response.body = response_body.encode('utf-8')
 
-        with patch('Tea.core.TeaCore.do_action', return_value=response):
+        with patch('darabonba.core.DaraCore.do_action', return_value=response):
             provider = RamRoleArnCredentialsProvider(
                 access_key_id=self.access_key_id,
                 access_key_secret=self.access_key_secret,
@@ -215,11 +215,11 @@ class TestRamRoleArnCredentialsProvider(unittest.TestCase):
         """
         Test case 8: HTTP request error raises CredentialException
         """
-        response = TeaResponse()
+        response = DaraResponse()
         response.status_code = 400
         response.body = b'HTTP request failed'
 
-        with patch('Tea.core.TeaCore.do_action', return_value=response):
+        with patch('darabonba.core.DaraCore.do_action', return_value=response):
             provider = RamRoleArnCredentialsProvider(
                 access_key_id=self.access_key_id,
                 access_key_secret=self.access_key_secret,
@@ -248,11 +248,11 @@ class TestRamRoleArnCredentialsProvider(unittest.TestCase):
         response_body = json.dumps({
             "Error": "Invalid request"
         })
-        response = TeaResponse()
+        response = DaraResponse()
         response.status_code = 200
         response.body = response_body.encode('utf-8')
 
-        with patch('Tea.core.TeaCore.do_action', return_value=response):
+        with patch('darabonba.core.DaraCore.do_action', return_value=response):
             provider = RamRoleArnCredentialsProvider(
                 access_key_id=self.access_key_id,
                 access_key_secret=self.access_key_secret,
@@ -286,11 +286,11 @@ class TestRamRoleArnCredentialsProvider(unittest.TestCase):
                 "Expiration": "2023-12-31T23:59:59Z"
             }
         })
-        response = TeaResponse()
+        response = DaraResponse()
         response.status_code = 200
         response.body = response_body.encode('utf-8')
 
-        with patch('Tea.core.TeaCore.async_do_action', AsyncMock(return_value=response)):
+        with patch('darabonba.core.DaraCore.async_do_action', AsyncMock(return_value=response)):
             provider = RamRoleArnCredentialsProvider(
                 access_key_id=self.access_key_id,
                 access_key_secret=self.access_key_secret,
@@ -332,11 +332,11 @@ class TestRamRoleArnCredentialsProvider(unittest.TestCase):
         """
         Test case 11: HTTP request error raises CredentialException asynchronously
         """
-        response = TeaResponse()
+        response = DaraResponse()
         response.status_code = 400
         response.body = b'HTTP request failed'
 
-        with patch('Tea.core.TeaCore.async_do_action', AsyncMock(return_value=response)):
+        with patch('darabonba.core.DaraCore.async_do_action', AsyncMock(return_value=response)):
             provider = RamRoleArnCredentialsProvider(
                 access_key_id=self.access_key_id,
                 access_key_secret=self.access_key_secret,
@@ -369,11 +369,11 @@ class TestRamRoleArnCredentialsProvider(unittest.TestCase):
         response_body = json.dumps({
             "Error": "Invalid request"
         })
-        response = TeaResponse()
+        response = DaraResponse()
         response.status_code = 200
         response.body = response_body.encode('utf-8')
 
-        with patch('Tea.core.TeaCore.async_do_action', AsyncMock(return_value=response)):
+        with patch('darabonba.core.DaraCore.async_do_action', AsyncMock(return_value=response)):
             provider = RamRoleArnCredentialsProvider(
                 access_key_id=self.access_key_id,
                 access_key_secret=self.access_key_secret,

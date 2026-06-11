@@ -143,7 +143,7 @@ class TestOAuthCredentialsProvider(unittest.TestCase):
         self.assertEqual(provider._runtime_options['connectTimeout'], OAuthCredentialsProvider.DEFAULT_CONNECT_TIMEOUT)
         self.assertEqual(provider._runtime_options['readTimeout'], OAuthCredentialsProvider.DEFAULT_READ_TIMEOUT)
 
-    @patch('alibabacloud_credentials.provider.oauth.TeaCore.do_action')
+    @patch('darabonba.core.DaraCore.do_action')
     def test_get_credentials_success(self, mock_do_action):
         """
         Test case 9: Valid input, successfully retrieves credentials
@@ -175,7 +175,7 @@ class TestOAuthCredentialsProvider(unittest.TestCase):
         self.assertEqual(tea_request.headers['Authorization'], f'Bearer {self.access_token}')
         self.assertEqual(tea_request.headers['Content-Type'], 'application/json')
 
-    @patch('alibabacloud_credentials.provider.oauth.TeaCore.async_do_action')
+    @patch('darabonba.core.DaraCore.async_do_action')
     def test_get_credentials_async_success(self, mock_async_do_action):
         """
         Test case 10: Valid input, successfully retrieves credentials asynchronously
@@ -202,7 +202,7 @@ class TestOAuthCredentialsProvider(unittest.TestCase):
         self.assertEqual(credentials.get_security_token(), self.security_token)
         self.assertEqual(credentials.get_provider_name(), "oauth")
 
-    @patch('alibabacloud_credentials.provider.oauth.TeaCore.do_action')
+    @patch('darabonba.core.DaraCore.do_action')
     def test_get_credentials_http_error(self, mock_do_action):
         """
         Test case 11: HTTP error response raises CredentialException
@@ -225,7 +225,7 @@ class TestOAuthCredentialsProvider(unittest.TestCase):
 
         self.assertIn("error refreshing credentials from OAuth, http_code: 400", str(context.exception))
 
-    @patch('alibabacloud_credentials.provider.oauth.TeaCore.do_action')
+    @patch('darabonba.core.DaraCore.do_action')
     def test_get_credentials_error_in_response(self, mock_do_action):
         """
         Test case 12: Error field in response raises CredentialException
@@ -248,7 +248,7 @@ class TestOAuthCredentialsProvider(unittest.TestCase):
 
         self.assertIn("error retrieving credentials from OAuth result", str(context.exception))
 
-    @patch('alibabacloud_credentials.provider.oauth.TeaCore.do_action')
+    @patch('darabonba.core.DaraCore.do_action')
     def test_get_credentials_missing_required_fields(self, mock_do_action):
         """
         Test case 13: Missing required fields in response raises CredentialException
@@ -274,7 +274,7 @@ class TestOAuthCredentialsProvider(unittest.TestCase):
 
         self.assertIn("error retrieving credentials from OAuth result", str(context.exception))
 
-    @patch('alibabacloud_credentials.provider.oauth.TeaCore.do_action')
+    @patch('darabonba.core.DaraCore.do_action')
     def test_get_credentials_invalid_json(self, mock_do_action):
         """
         Test case 14: Invalid JSON response raises JSONDecodeError
@@ -332,7 +332,7 @@ class TestOAuthCredentialsProvider(unittest.TestCase):
             expected_stale_time = 1672531199 + 60 * 60  # current time + 1 hour
             self.assertEqual(stale_time, expected_stale_time)
 
-    @patch('alibabacloud_credentials.provider.oauth.TeaCore.do_action')
+    @patch('darabonba.core.DaraCore.do_action')
     def test_credentials_caching(self, mock_do_action):
         """
         Test case 18: Credentials are cached and not refreshed on subsequent calls
@@ -361,7 +361,7 @@ class TestOAuthCredentialsProvider(unittest.TestCase):
         # But TeaCore.do_action should only be called once due to caching
         self.assertEqual(mock_do_action.call_count, 1)
 
-    @patch('alibabacloud_credentials.provider.oauth.TeaCore.do_action')
+    @patch('darabonba.core.DaraCore.do_action')
     def test_url_parsing_cn(self, mock_do_action):
         """
         Test case 19: URL parsing works correctly for CN site type
@@ -386,7 +386,7 @@ class TestOAuthCredentialsProvider(unittest.TestCase):
         self.assertEqual(tea_request.protocol, "https")
         self.assertEqual(tea_request.headers['host'], "oauth.aliyun.com")
 
-    @patch('alibabacloud_credentials.provider.oauth.TeaCore.do_action')
+    @patch('darabonba.core.DaraCore.do_action')
     def test_url_parsing_intl(self, mock_do_action):
         """
         Test case 20: URL parsing works correctly for INTL site type
@@ -411,7 +411,7 @@ class TestOAuthCredentialsProvider(unittest.TestCase):
         self.assertEqual(tea_request.protocol, "https")
         self.assertEqual(tea_request.headers['host'], "oauth.alibabacloud.com")
 
-    @patch('alibabacloud_credentials.provider.oauth.TeaCore.do_action')
+    @patch('darabonba.core.DaraCore.do_action')
     def test_expiration_time_parsing(self, mock_do_action):
         """
         Test case 21: Expiration time is correctly parsed from ISO format
@@ -458,7 +458,7 @@ class TestOAuthCredentialsProvider(unittest.TestCase):
         self.assertEqual(provider_intl._client_id, "456")
         self.assertEqual(provider_intl._sign_in_url, "https://oauth.alibabacloud.com")
 
-    @patch('alibabacloud_credentials.provider.oauth.TeaCore.do_action')
+    @patch('darabonba.core.DaraCore.do_action')
     def test_request_body_empty(self, mock_do_action):
         """
         Test case 23: Request body should be empty for OAuth exchange
@@ -481,7 +481,7 @@ class TestOAuthCredentialsProvider(unittest.TestCase):
 
         self.assertIsNone(tea_request.body)
 
-    @patch('Tea.core.TeaCore.do_action')
+    @patch('darabonba.core.DaraCore.do_action')
     def test_oauth_token_refresh_success(self, mock_do_action):
         """测试 OAuth 令牌刷新成功"""
         # 模拟成功的令牌刷新响应
@@ -519,7 +519,7 @@ class TestOAuthCredentialsProvider(unittest.TestCase):
         # 验证回调被调用
         self.assertTrue(callback_called)
 
-    @patch('Tea.core.TeaCore.do_action')
+    @patch('darabonba.core.DaraCore.do_action')
     def test_oauth_callback_in_credentials_refresh(self, mock_do_action):
         """测试在凭据刷新时调用回调函数"""
         # 模拟成功的凭据交换响应
@@ -564,7 +564,7 @@ class TestOAuthCredentialsProvider(unittest.TestCase):
         self.assertEqual(callback_data[3], "test_access_key_secret")  # secret
         self.assertEqual(callback_data[4], "test_security_token")  # security_token
 
-    @patch('Tea.core.TeaCore.do_action')
+    @patch('darabonba.core.DaraCore.do_action')
     def test_oauth_callback_error_handling(self, mock_do_action):
         """测试回调函数错误处理"""
         # 模拟成功的凭据交换响应
@@ -621,7 +621,7 @@ class TestOAuthCredentialsProvider(unittest.TestCase):
         self.assertEqual(provider._access_token, "test_access_token")
         self.assertEqual(provider._refresh_token, "")
 
-    @patch('Tea.core.TeaCore.do_action')
+    @patch('darabonba.core.DaraCore.do_action')
     def test_oauth_token_refresh_failure(self, mock_do_action):
         """测试OAuth令牌刷新失败"""
         # 模拟失败的令牌刷新响应
@@ -647,7 +647,7 @@ class TestOAuthCredentialsProvider(unittest.TestCase):
         self.assertEqual(provider._refresh_token, "invalid_refresh_token")
 
 
-    @patch('Tea.core.TeaCore.do_action')
+    @patch('darabonba.core.DaraCore.do_action')
     def test_oauth_token_refresh_network_error(self, mock_do_action):
         """测试OAuth令牌刷新时网络错误"""
         # 模拟网络错误
@@ -700,7 +700,7 @@ class TestOAuthCredentialsProvider(unittest.TestCase):
 
         self.assertEqual(provider._runtime_options['httpsProxy'], "http://proxy.example.com:8080")
 
-    @patch('Tea.core.TeaCore.do_action')
+    @patch('darabonba.core.DaraCore.do_action')
     def test_oauth_credentials_refresh_with_callback(self, mock_do_action):
         """测试OAuth凭据刷新时调用回调"""
         # 模拟成功的凭据交换响应
@@ -745,7 +745,7 @@ class TestOAuthCredentialsProvider(unittest.TestCase):
         self.assertEqual(callback_data[3], "test_access_key_secret")  # secret
         self.assertEqual(callback_data[4], "test_security_token")  # security_token
 
-    @patch('Tea.core.TeaCore.async_do_action')
+    @patch('darabonba.core.DaraCore.async_do_action')
     def test_oauth_credentials_refresh_async_with_callback(self, mock_async_do_action):
         """测试OAuth异步凭据刷新时调用回调"""
         # 模拟成功的凭据交换响应
@@ -884,7 +884,7 @@ class TestOAuthCredentialsProvider(unittest.TestCase):
         self.assertEqual(provider._client_id, "123")
         self.assertEqual(provider._sign_in_url, "https://oauth.aliyun.com")
 
-    @patch('Tea.core.TeaCore.async_do_action')
+    @patch('darabonba.core.DaraCore.async_do_action')
     def test_oauth_async_token_refresh_success(self, mock_async_do_action):
         """测试异步OAuth令牌刷新成功"""
         # 模拟成功的令牌刷新响应
@@ -916,7 +916,7 @@ class TestOAuthCredentialsProvider(unittest.TestCase):
         self.assertEqual(new_access_token, "new_access_token")
         self.assertEqual(new_refresh_token, "new_refresh_token")
 
-    @patch('Tea.core.TeaCore.async_do_action')
+    @patch('darabonba.core.DaraCore.async_do_action')
     def test_oauth_async_token_refresh_failure(self, mock_async_do_action):
         """测试异步OAuth令牌刷新失败"""
         # 模拟失败的令牌刷新响应
@@ -946,7 +946,7 @@ class TestOAuthCredentialsProvider(unittest.TestCase):
         self.assertEqual(provider._access_token, "old_access_token")
         self.assertEqual(provider._refresh_token, "invalid_refresh_token")
 
-    @patch('Tea.core.TeaCore.async_do_action')
+    @patch('darabonba.core.DaraCore.async_do_action')
     def test_oauth_async_credentials_refresh_with_async_callback(self, mock_async_do_action):
         """测试异步凭据刷新时调用异步回调函数"""
         # 模拟成功的凭据交换响应
@@ -992,7 +992,7 @@ class TestOAuthCredentialsProvider(unittest.TestCase):
         self.assertEqual(callback_data[3], "test_access_key_secret")  # secret
         self.assertEqual(callback_data[4], "test_security_token")  # security_token
 
-    @patch('Tea.core.TeaCore.async_do_action')
+    @patch('darabonba.core.DaraCore.async_do_action')
     def test_oauth_async_credentials_refresh_with_async_callback_error(self, mock_async_do_action):
         """测试异步回调函数错误处理"""
         # 模拟成功的凭据交换响应
@@ -1028,7 +1028,7 @@ class TestOAuthCredentialsProvider(unittest.TestCase):
         self.assertIsNotNone(credentials)
         self.assertEqual(credentials.get_access_key_id(), "test_access_key_id")
 
-    @patch('Tea.core.TeaCore.do_action')
+    @patch('darabonba.core.DaraCore.do_action')
     def test_oauth_token_refresh_timing_sufficient_time(self, mock_do_action):
         """测试当 OAuth token 剩余时间 > 1200秒时，不触发刷新"""
         # 模拟成功的凭据交换响应
@@ -1068,7 +1068,7 @@ class TestOAuthCredentialsProvider(unittest.TestCase):
         # 验证 token 没有被刷新
         self.assertEqual(provider._access_token, "valid_access_token")
 
-    @patch('Tea.core.TeaCore.do_action')
+    @patch('darabonba.core.DaraCore.do_action')
     def test_oauth_token_refresh_timing_insufficient_time(self, mock_do_action):
         """测试当 OAuth token 剩余时间 <= 1200秒时，触发刷新"""
         # 模拟两次响应：1. token 刷新，2. 凭据交换
@@ -1125,7 +1125,7 @@ class TestOAuthCredentialsProvider(unittest.TestCase):
         self.assertEqual(provider._access_token, "new_access_token")
         self.assertEqual(provider._refresh_token, "new_refresh_token")
 
-    @patch('Tea.core.TeaCore.do_action')
+    @patch('darabonba.core.DaraCore.do_action')
     def test_oauth_token_refresh_timing_exactly_threshold(self, mock_do_action):
         """测试当 OAuth token 剩余时间正好等于 1200秒时，触发刷新"""
         # 模拟两次响应：1. token 刷新，2. 凭据交换
@@ -1170,7 +1170,7 @@ class TestOAuthCredentialsProvider(unittest.TestCase):
         # 验证 token 被刷新
         self.assertEqual(provider._access_token, "new_access_token")
 
-    @patch('Tea.core.TeaCore.async_do_action')
+    @patch('darabonba.core.DaraCore.async_do_action')
     def test_oauth_token_refresh_timing_async_sufficient_time(self, mock_async_do_action):
         """测试异步场景：当 OAuth token 剩余时间 > 1200秒时，不触发刷新"""
         # 模拟成功的凭据交换响应
@@ -1213,7 +1213,7 @@ class TestOAuthCredentialsProvider(unittest.TestCase):
         # 验证 token 没有被刷新
         self.assertEqual(provider._access_token, "valid_access_token")
 
-    @patch('Tea.core.TeaCore.async_do_action')
+    @patch('darabonba.core.DaraCore.async_do_action')
     def test_oauth_token_refresh_timing_async_insufficient_time(self, mock_async_do_action):
         """测试异步场景：当 OAuth token 剩余时间 <= 1200秒时，触发刷新"""
         # 模拟两次响应：1. token 刷新，2. 凭据交换
@@ -1273,7 +1273,7 @@ class TestOAuthCredentialsProvider(unittest.TestCase):
         self.assertEqual(provider._access_token, "new_access_token")
         self.assertEqual(provider._refresh_token, "new_refresh_token")
 
-    @patch('Tea.core.TeaCore.do_action')
+    @patch('darabonba.core.DaraCore.do_action')
     def test_oauth_token_refresh_timing_edge_case_zero_expire(self, mock_do_action):
         """测试边界情况：access_token_expire 为 0 时触发刷新"""
         # 模拟两次响应：1. token 刷新，2. 凭据交换
@@ -1317,7 +1317,7 @@ class TestOAuthCredentialsProvider(unittest.TestCase):
         # 验证 token 被刷新
         self.assertEqual(provider._access_token, "new_access_token")
 
-    @patch('Tea.core.TeaCore.do_action')
+    @patch('darabonba.core.DaraCore.do_action')
     def test_oauth_token_refresh_timing_edge_case_none_token(self, mock_do_action):
         """测试边界情况：access_token 为 None 时触发刷新"""
         # 模拟两次响应：1. token 刷新，2. 凭据交换
