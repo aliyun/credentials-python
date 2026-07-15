@@ -28,7 +28,7 @@ class TestCLIProfileCredentialsProvider(unittest.TestCase):
         # 设置时区环境变量以避免调度器初始化问题
         os.environ['TZ'] = 'UTC'
         self.profile_name = "test_profile"
-        self.profile_file = os.path.join(ac.HOME, ".aliyun/config.json")
+        self.profile_file = os.path.join(ac.HOME, ".aliyun", "config.json")
         self.config = {
             "current": "test_profile",
             "profiles": [
@@ -130,7 +130,7 @@ class TestCLIProfileCredentialsProvider(unittest.TestCase):
             provider = CLIProfileCredentialsProvider()
 
             self.assertEqual(provider._profile_name, self.profile_name)
-            self.assertEqual(provider._profile_file, os.path.join(ac.HOME, ".aliyun/config.json"))
+            self.assertEqual(provider._profile_file, os.path.join(ac.HOME, ".aliyun", "config.json"))
 
     def test_get_credentials_valid_ak(self):
         """
@@ -1975,7 +1975,11 @@ class TestCLIProfileCredentialsProvider(unittest.TestCase):
     def test_write_configuration_unlock_oserror_ignored(self):
         import tempfile
         import json
+        import platform
         from unittest.mock import patch
+
+        if platform.system() == 'Windows':
+            self.skipTest('fcntl unlock path only applies on Unix')
 
         temp_dir = tempfile.mkdtemp()
         config_path = os.path.join(temp_dir, "config.json")
@@ -2178,7 +2182,11 @@ class TestCLIProfileCredentialsProvider(unittest.TestCase):
     def test_write_configuration_async_unlock_oserror_ignored(self):
         import tempfile
         import json
+        import platform
         from unittest.mock import patch
+
+        if platform.system() == 'Windows':
+            self.skipTest('fcntl unlock path only applies on Unix')
 
         temp_dir = tempfile.mkdtemp()
         config_path = os.path.join(temp_dir, "config.json")
