@@ -879,6 +879,121 @@ class TestCLIProfileCredentialsProvider(unittest.TestCase):
             import shutil
             shutil.rmtree(temp_dir, ignore_errors=True)
 
+    def test_write_configuration_to_file_overwrite_existing(self):
+        """覆盖已存在的 config.json（模拟 Windows WinError 183 场景，应使用 os.replace）"""
+        import tempfile
+        import json
+
+        temp_dir = tempfile.mkdtemp()
+        config_path = os.path.join(temp_dir, "config.json")
+
+        initial_config = {
+            "current": "old",
+            "profiles": [{"name": "old", "mode": "AK"}]
+        }
+        updated_config = {
+            "current": "new",
+            "profiles": [{"name": "new", "mode": "OAuth", "oauth_access_token": "token-v2"}]
+        }
+
+        try:
+            with open(config_path, 'w') as f:
+                json.dump(initial_config, f)
+
+            # 默认 allow_config_force_rewrite=False，也应能覆盖已存在文件
+            provider = CLIProfileCredentialsProvider()
+            provider._write_configuration_to_file(config_path, updated_config)
+
+            self.assertTrue(os.path.exists(config_path))
+            with open(config_path, 'r') as f:
+                loaded_config = json.load(f)
+            self.assertEqual(loaded_config, updated_config)
+
+            # 不应残留临时文件
+            tmp_files = [name for name in os.listdir(temp_dir) if '.tmp-' in name]
+            self.assertEqual(tmp_files, [])
+
+        finally:
+            import shutil
+            shutil.rmtree(temp_dir, ignore_errors=True)
+
+    def test_write_configuration_to_file_with_lock_overwrite_existing(self):
+        """带锁写入覆盖已存在文件（OAuth token 刷新实际路径）"""
+        import tempfile
+        import json
+
+        temp_dir = tempfile.mkdtemp()
+        config_path = os.path.join(temp_dir, "config.json")
+
+        initial_config = {
+            "current": "oauth",
+            "profiles": [{
+                "name": "oauth",
+                "mode": "OAuth",
+                "oauth_access_token": "old-token",
+            }]
+        }
+        updated_config = {
+            "current": "oauth",
+            "profiles": [{
+                "name": "oauth",
+                "mode": "OAuth",
+                "oauth_access_token": "new-token",
+            }]
+        }
+
+        try:
+            with open(config_path, 'w') as f:
+                json.dump(initial_config, f)
+
+            # 默认 allow_config_force_rewrite=False（mcp-proxy / 用户默认路径）
+            provider = CLIProfileCredentialsProvider()
+            provider._write_configuration_to_file_with_lock(config_path, updated_config)
+
+            with open(config_path, 'r') as f:
+                loaded_config = json.load(f)
+            self.assertEqual(loaded_config, updated_config)
+
+            tmp_files = [name for name in os.listdir(temp_dir) if '.tmp-' in name or name.endswith('.backup')]
+            self.assertEqual(tmp_files, [])
+
+        finally:
+            import shutil
+            shutil.rmtree(temp_dir, ignore_errors=True)
+
+    def test_default_profile_file_uses_os_sep(self):
+        """默认 config 路径应按平台分隔符拼接，避免 Windows 混用 \\ 与 /"""
+        provider = CLIProfileCredentialsProvider()
+        expected = os.path.join(ac.HOME, ".aliyun", "config.json")
+        self.assertEqual(provider._profile_file, expected)
+        self.assertTrue(provider._profile_file.endswith(os.path.join(".aliyun", "config.json")))
+
+    def test_write_configuration_to_file_with_lock_windows_inplace(self):
+        """Windows 带锁路径应走原地写入，避免对已打开目标文件做 replace"""
+        import tempfile
+        import json
+        from unittest.mock import patch
+
+        temp_dir = tempfile.mkdtemp()
+        config_path = os.path.join(temp_dir, "config.json")
+        updated_config = {"current": "win", "profiles": [{"name": "win", "mode": "AK"}]}
+
+        try:
+            with open(config_path, 'w') as f:
+                json.dump({"current": "old"}, f)
+
+            provider = CLIProfileCredentialsProvider()
+            with patch('alibabacloud_credentials.provider.cli_profile.platform.system', return_value='Windows'):
+                with patch('alibabacloud_credentials.provider.cli_profile.os.replace') as mock_replace:
+                    provider._write_configuration_to_file_with_lock(config_path, updated_config)
+                    mock_replace.assert_not_called()
+
+            with open(config_path, 'r') as f:
+                self.assertEqual(json.load(f), updated_config)
+        finally:
+            import shutil
+            shutil.rmtree(temp_dir, ignore_errors=True)
+
     def test_write_configuration_to_file_error(self):
         """测试写入只读目录时的错误处理"""
         import tempfile

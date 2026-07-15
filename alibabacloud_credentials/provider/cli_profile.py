@@ -60,7 +60,7 @@ class CLIProfileCredentialsProvider(ICredentialsProvider):
                  profile_name: str = None,
                  profile_file: str = None,
                  allow_config_force_rewrite: bool = False):
-        self._profile_file = profile_file or os.path.join(ac.HOME, ".aliyun/config.json")
+        self._profile_file = profile_file or os.path.join(ac.HOME, ".aliyun", "config.json")
         self._profile_name = profile_name or au.environment_profile_name
         self._allow_config_force_rewrite = allow_config_force_rewrite
         self.__innerProvider = None
@@ -295,7 +295,11 @@ class CLIProfileCredentialsProvider(ICredentialsProvider):
                 raise CredentialException(f"failed to update OAuth tokens in config file: {e}")
 
     def _write_configuration_to_file(self, config_path: str, config: Dict) -> None:
-        """将配置写入文件，使用原子写入确保数据完整性"""
+        """将配置写入文件，使用原子写入确保数据完整性。
+
+        使用 os.replace 而非 os.rename：Windows 上 rename 无法覆盖已存在目标文件
+        （WinError 183），而 os.replace 提供跨平台的覆盖语义。
+        """
         # 获取原文件权限（如果存在）
         file_mode = 0o644
         if os.path.exists(config_path):
@@ -304,40 +308,19 @@ class CLIProfileCredentialsProvider(ICredentialsProvider):
         # 创建唯一临时文件
         import time
         temp_file = config_path + '.tmp-' + str(int(time.time() * 1000000))  # 微秒级时间戳
-        backup_file = None
 
         try:
             # 写入临时文件
             self._write_config_file(temp_file, file_mode, config)
-
-            # 原子性重命名，Windows下需要特殊处理
-            if platform.system() == 'Windows' and self._allow_config_force_rewrite:
-                # Windows下需要先删除目标文件，使用备份机制确保数据安全
-                if os.path.exists(config_path):
-                    backup_file = config_path + '.backup'
-                    # 创建备份
-                    import shutil
-                    shutil.copy2(config_path, backup_file)
-                    # 删除原文件
-                    os.remove(config_path)
-
-            os.rename(temp_file, config_path)
-
-            # 成功后删除备份
-            if backup_file and os.path.exists(backup_file):
-                os.remove(backup_file)
-
-        except Exception as e:
-            # 恢复原文件（如果存在备份）
-            if backup_file and os.path.exists(backup_file):
+            # 原子替换（Windows 上可覆盖已存在的 config_path）
+            os.replace(temp_file, config_path)
+        except Exception:
+            if os.path.exists(temp_file):
                 try:
-                    if not os.path.exists(config_path):
-                        os.rename(backup_file, config_path)
-                except Exception as restore_error:
-                    raise CredentialException(
-                        f"Failed to restore original file after write error: {restore_error}. Original error: {e}")
-
-            raise e
+                    os.remove(temp_file)
+                except OSError:
+                    pass
+            raise
 
     def _write_config_file(self, filename: str, file_mode: int, config: Dict) -> None:
         try:
@@ -351,80 +334,59 @@ class CLIProfileCredentialsProvider(ICredentialsProvider):
             raise CredentialException(f"Failed to write config file: {e}")
 
     def _write_configuration_to_file_with_lock(self, config_path: str, config: Dict) -> None:
-        """使用操作系统级别的文件锁写入配置文件"""
+        """使用操作系统级别的文件锁写入配置文件。
+
+        Windows 上目标文件被打开锁定时无法 rename/replace，因此在锁内直接原地写入；
+        其他平台使用临时文件 + os.replace 原子覆盖。
+        """
         # 获取原文件权限（如果存在）
         file_mode = 0o644
         if os.path.exists(config_path):
             file_mode = os.stat(config_path).st_mode
 
-        backup_file = None
+        # 确保文件存在
+        if not os.path.exists(config_path):
+            # 创建空文件
+            with open(config_path, 'w') as f:
+                json.dump({}, f)
 
-        try:
-            # 确保文件存在
-            if not os.path.exists(config_path):
-                # 创建空文件
-                with open(config_path, 'w') as f:
-                    json.dump({}, f)
+        # 打开文件用于锁定
+        with open(config_path, 'r+') as f:
+            # 获取独占锁（阻塞其他进程）
+            if HAS_MSVCRT:
+                # Windows使用msvcrt
+                msvcrt.locking(f.fileno(), msvcrt.LK_NBLCK, 1)
+            elif HAS_FCNTL:
+                # Unix/Linux使用fcntl
+                fcntl.flock(f.fileno(), fcntl.LOCK_EX)
+            # 如果都不支持，则跳过文件锁（仅进程内保护）
 
-            # 在获取文件锁之前创建备份（Windows下需要）
-            if platform.system() == 'Windows' and self._allow_config_force_rewrite and os.path.exists(config_path):
-                backup_file = config_path + '.backup'
-                import shutil
-                shutil.copy2(config_path, backup_file)
+            try:
+                if platform.system() == 'Windows':
+                    # Windows 下目标文件处于打开锁定状态时无法 replace，改为原地写入
+                    f.seek(0)
+                    f.truncate()  # 清空文件内容
+                    json.dump(config, f, indent=4, ensure_ascii=False)
+                    f.flush()
+                    os.fsync(f.fileno())
+                else:
+                    # 其他环境使用临时文件 + os.replace（在文件锁内部进行原子操作）
+                    import time
+                    temp_file = config_path + '.tmp-' + str(int(time.time() * 1000000))
+                    self._write_config_file(temp_file, file_mode, config)
+                    os.replace(temp_file, config_path)
 
-            # 打开文件用于锁定
-            with open(config_path, 'r+') as f:
-                # 获取独占锁（阻塞其他进程）
-                if HAS_MSVCRT:
-                    # Windows使用msvcrt
-                    msvcrt.locking(f.fileno(), msvcrt.LK_NBLCK, 1)
-                elif HAS_FCNTL:
-                    # Unix/Linux使用fcntl
-                    fcntl.flock(f.fileno(), fcntl.LOCK_EX)
-                # 如果都不支持，则跳过文件锁（仅进程内保护）
-
+            finally:
+                # 释放锁
                 try:
-                    if platform.system() == 'Windows' and self._allow_config_force_rewrite:
-                        # Windows下直接在锁定的文件中写入
-                        f.seek(0)
-                        f.truncate()  # 清空文件内容
-                        json.dump(config, f, indent=4, ensure_ascii=False)
-                        f.flush()
-                    else:
-                        # 其他环境使用临时文件+rename（在文件锁内部进行原子操作）
-                        import time
-                        temp_file = config_path + '.tmp-' + str(int(time.time() * 1000000))
-                        self._write_config_file(temp_file, file_mode, config)
-                        # 在文件锁内部进行原子重命名
-                        os.rename(temp_file, config_path)
-
-                finally:
-                    # 释放锁
-                    try:
-                        if HAS_MSVCRT:
-                            msvcrt.locking(f.fileno(), msvcrt.LK_UNLCK, 1)
-                        elif HAS_FCNTL:
-                            fcntl.flock(f.fileno(), fcntl.LOCK_UN)
-                    except (OSError, PermissionError):
-                        # 在Windows下，如果文件被重命名，文件句柄可能已经无效
-                        # 这种情况下锁会自动释放，所以忽略错误
-                        pass
-
-            # 成功后删除备份
-            if backup_file and os.path.exists(backup_file):
-                os.remove(backup_file)
-
-        except Exception as e:
-            # 恢复原文件（如果存在备份）
-            if backup_file and os.path.exists(backup_file):
-                try:
-                    if not os.path.exists(config_path):
-                        os.rename(backup_file, config_path)
-                except Exception as restore_error:
-                    raise CredentialException(
-                        f"Failed to restore original file after write error: {restore_error}. Original error: {e}")
-
-            raise e
+                    if HAS_MSVCRT:
+                        msvcrt.locking(f.fileno(), msvcrt.LK_UNLCK, 1)
+                    elif HAS_FCNTL:
+                        fcntl.flock(f.fileno(), fcntl.LOCK_UN)
+                except (OSError, PermissionError):
+                    # 在Windows下，如果文件被重命名，文件句柄可能已经无效
+                    # 这种情况下锁会自动释放，所以忽略错误
+                    pass
 
     def _get_oauth_token_update_callback(self) -> OAuthTokenUpdateCallback:
         """获取 OAuth 令牌更新回调函数"""
@@ -475,7 +437,10 @@ class CLIProfileCredentialsProvider(ICredentialsProvider):
         )
 
     async def _write_configuration_to_file_async(self, config_path: str, config: Dict) -> None:
-        """异步将配置写入文件，使用原子写入确保数据完整性"""
+        """异步将配置写入文件，使用原子写入确保数据完整性。
+
+        使用 os.replace 而非 os.rename，确保 Windows 上可覆盖已存在文件。
+        """
         # 获取原文件权限（如果存在）
         file_mode = 0o644
         if os.path.exists(config_path):
@@ -484,40 +449,19 @@ class CLIProfileCredentialsProvider(ICredentialsProvider):
         # 创建唯一临时文件
         import time
         temp_file = config_path + '.tmp-' + str(int(time.time() * 1000000))  # 微秒级时间戳
-        backup_file = None
 
         try:
             # 异步写入临时文件
             await self._write_config_file_async(temp_file, file_mode, config)
-
-            # 原子性重命名，Windows下需要特殊处理
-            if platform.system() == 'Windows' and self._allow_config_force_rewrite:
-                # Windows下需要先删除目标文件，使用备份机制确保数据安全
-                if os.path.exists(config_path):
-                    backup_file = config_path + '.backup'
-                    # 创建备份
-                    import shutil
-                    shutil.copy2(config_path, backup_file)
-                    # 删除原文件
-                    os.remove(config_path)
-
-            os.rename(temp_file, config_path)
-
-            # 成功后删除备份
-            if backup_file and os.path.exists(backup_file):
-                os.remove(backup_file)
-
-        except Exception as e:
-            # 恢复原文件（如果存在备份）
-            if backup_file and os.path.exists(backup_file):
+            # 原子替换（Windows 上可覆盖已存在的 config_path）
+            os.replace(temp_file, config_path)
+        except Exception:
+            if os.path.exists(temp_file):
                 try:
-                    if not os.path.exists(config_path):
-                        os.rename(backup_file, config_path)
-                except Exception as restore_error:
-                    raise CredentialException(
-                        f"Failed to restore original file after write error: {restore_error}. Original error: {e}")
-
-            raise e
+                    os.remove(temp_file)
+                except OSError:
+                    pass
+            raise
 
     async def _write_config_file_async(self, filename: str, file_mode: int, config: Dict) -> None:
         try:
@@ -531,80 +475,59 @@ class CLIProfileCredentialsProvider(ICredentialsProvider):
             raise CredentialException(f"Failed to write config file: {e}")
 
     async def _write_configuration_to_file_with_lock_async(self, config_path: str, config: Dict) -> None:
-        """异步使用操作系统级别的文件锁写入配置文件"""
+        """异步使用操作系统级别的文件锁写入配置文件。
+
+        Windows 上目标文件被打开锁定时无法 rename/replace，因此在锁内直接原地写入；
+        其他平台使用临时文件 + os.replace 原子覆盖。
+        """
         # 获取原文件权限（如果存在）
         file_mode = 0o644
         if os.path.exists(config_path):
             file_mode = os.stat(config_path).st_mode
 
-        backup_file = None
+        # 确保文件存在
+        if not os.path.exists(config_path):
+            # 创建空文件
+            with open(config_path, 'w') as f:
+                json.dump({}, f)
 
-        try:
-            # 确保文件存在
-            if not os.path.exists(config_path):
-                # 创建空文件
-                with open(config_path, 'w') as f:
-                    json.dump({}, f)
+        # 打开文件用于锁定
+        with open(config_path, 'r+') as f:
+            # 获取独占锁（阻塞其他进程）
+            if HAS_MSVCRT:
+                # Windows使用msvcrt
+                msvcrt.locking(f.fileno(), msvcrt.LK_NBLCK, 1)
+            elif HAS_FCNTL:
+                # Unix/Linux使用fcntl
+                fcntl.flock(f.fileno(), fcntl.LOCK_EX)
+            # 如果都不支持，则跳过文件锁（仅进程内保护）
 
-            # 在获取文件锁之前创建备份（Windows下需要）
-            if platform.system() == 'Windows' and self._allow_config_force_rewrite and os.path.exists(config_path):
-                backup_file = config_path + '.backup'
-                import shutil
-                shutil.copy2(config_path, backup_file)
+            try:
+                if platform.system() == 'Windows':
+                    # Windows 下目标文件处于打开锁定状态时无法 replace，改为原地写入
+                    f.seek(0)
+                    f.truncate()  # 清空文件内容
+                    json.dump(config, f, indent=4, ensure_ascii=False)
+                    f.flush()
+                    os.fsync(f.fileno())
+                else:
+                    # 其他环境使用临时文件 + os.replace（在文件锁内部进行原子操作）
+                    import time
+                    temp_file = config_path + '.tmp-' + str(int(time.time() * 1000000))
+                    await self._write_config_file_async(temp_file, file_mode, config)
+                    os.replace(temp_file, config_path)
 
-            # 打开文件用于锁定
-            with open(config_path, 'r+') as f:
-                # 获取独占锁（阻塞其他进程）
-                if HAS_MSVCRT:
-                    # Windows使用msvcrt
-                    msvcrt.locking(f.fileno(), msvcrt.LK_NBLCK, 1)
-                elif HAS_FCNTL:
-                    # Unix/Linux使用fcntl
-                    fcntl.flock(f.fileno(), fcntl.LOCK_EX)
-                # 如果都不支持，则跳过文件锁（仅进程内保护）
-
+            finally:
+                # 释放锁
                 try:
-                    if platform.system() == 'Windows' and self._allow_config_force_rewrite:
-                        # Windows下直接在锁定的文件中写入
-                        f.seek(0)
-                        f.truncate()  # 清空文件内容
-                        json.dump(config, f, indent=4, ensure_ascii=False)
-                        f.flush()
-                    else:
-                        # 其他环境使用临时文件+rename（在文件锁内部进行原子操作）
-                        import time
-                        temp_file = config_path + '.tmp-' + str(int(time.time() * 1000000))
-                        await self._write_config_file_async(temp_file, file_mode, config)
-                        # 在文件锁内部进行原子重命名
-                        os.rename(temp_file, config_path)
-
-                finally:
-                    # 释放锁
-                    try:
-                        if HAS_MSVCRT:
-                            msvcrt.locking(f.fileno(), msvcrt.LK_UNLCK, 1)
-                        elif HAS_FCNTL:
-                            fcntl.flock(f.fileno(), fcntl.LOCK_UN)
-                    except (OSError, PermissionError):
-                        # 在Windows下，如果文件被重命名，文件句柄可能已经无效
-                        # 这种情况下锁会自动释放，所以忽略错误
-                        pass
-
-            # 成功后删除备份
-            if backup_file and os.path.exists(backup_file):
-                os.remove(backup_file)
-
-        except Exception as e:
-            # 恢复原文件（如果存在备份）
-            if backup_file and os.path.exists(backup_file):
-                try:
-                    if not os.path.exists(config_path):
-                        os.rename(backup_file, config_path)
-                except Exception as restore_error:
-                    raise CredentialException(
-                        f"Failed to restore original file after write error: {restore_error}. Original error: {e}")
-
-            raise e
+                    if HAS_MSVCRT:
+                        msvcrt.locking(f.fileno(), msvcrt.LK_UNLCK, 1)
+                    elif HAS_FCNTL:
+                        fcntl.flock(f.fileno(), fcntl.LOCK_UN)
+                except (OSError, PermissionError):
+                    # 在Windows下，如果文件被重命名，文件句柄可能已经无效
+                    # 这种情况下锁会自动释放，所以忽略错误
+                    pass
 
     async def _update_oauth_tokens_async(self, refresh_token: str, access_token: str, access_key: str, secret: str,
                                          security_token: str, access_token_expire: int, sts_expire: int) -> None:

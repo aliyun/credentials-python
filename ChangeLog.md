@@ -1,3 +1,7 @@
+### 2026-07-15 Version 1.0.10
+* Fix Windows OAuth config.json update: use os.replace / in-place write so overwriting existing config no longer fails with WinError 183.
+* Normalize default config path separators via os.path.join.
+
 ### 2026-06-09 Version 1.0.9
 * Support External credentials.
 
