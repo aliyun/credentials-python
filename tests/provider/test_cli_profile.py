@@ -28,7 +28,7 @@ class TestCLIProfileCredentialsProvider(unittest.TestCase):
         # 设置时区环境变量以避免调度器初始化问题
         os.environ['TZ'] = 'UTC'
         self.profile_name = "test_profile"
-        self.profile_file = os.path.join(ac.HOME, ".aliyun/config.json")
+        self.profile_file = os.path.join(ac.HOME, ".aliyun", "config.json")
         self.config = {
             "current": "test_profile",
             "profiles": [
@@ -130,7 +130,7 @@ class TestCLIProfileCredentialsProvider(unittest.TestCase):
             provider = CLIProfileCredentialsProvider()
 
             self.assertEqual(provider._profile_name, self.profile_name)
-            self.assertEqual(provider._profile_file, os.path.join(ac.HOME, ".aliyun/config.json"))
+            self.assertEqual(provider._profile_file, os.path.join(ac.HOME, ".aliyun", "config.json"))
 
     def test_get_credentials_valid_ak(self):
         """
@@ -875,6 +875,121 @@ class TestCLIProfileCredentialsProvider(unittest.TestCase):
 
             self.assertEqual(loaded_config, test_config)
 
+        finally:
+            import shutil
+            shutil.rmtree(temp_dir, ignore_errors=True)
+
+    def test_write_configuration_to_file_overwrite_existing(self):
+        """覆盖已存在的 config.json（模拟 Windows WinError 183 场景，应使用 os.replace）"""
+        import tempfile
+        import json
+
+        temp_dir = tempfile.mkdtemp()
+        config_path = os.path.join(temp_dir, "config.json")
+
+        initial_config = {
+            "current": "old",
+            "profiles": [{"name": "old", "mode": "AK"}]
+        }
+        updated_config = {
+            "current": "new",
+            "profiles": [{"name": "new", "mode": "OAuth", "oauth_access_token": "token-v2"}]
+        }
+
+        try:
+            with open(config_path, 'w') as f:
+                json.dump(initial_config, f)
+
+            # 默认 allow_config_force_rewrite=False，也应能覆盖已存在文件
+            provider = CLIProfileCredentialsProvider()
+            provider._write_configuration_to_file(config_path, updated_config)
+
+            self.assertTrue(os.path.exists(config_path))
+            with open(config_path, 'r') as f:
+                loaded_config = json.load(f)
+            self.assertEqual(loaded_config, updated_config)
+
+            # 不应残留临时文件
+            tmp_files = [name for name in os.listdir(temp_dir) if '.tmp-' in name]
+            self.assertEqual(tmp_files, [])
+
+        finally:
+            import shutil
+            shutil.rmtree(temp_dir, ignore_errors=True)
+
+    def test_write_configuration_to_file_with_lock_overwrite_existing(self):
+        """带锁写入覆盖已存在文件（OAuth token 刷新实际路径）"""
+        import tempfile
+        import json
+
+        temp_dir = tempfile.mkdtemp()
+        config_path = os.path.join(temp_dir, "config.json")
+
+        initial_config = {
+            "current": "oauth",
+            "profiles": [{
+                "name": "oauth",
+                "mode": "OAuth",
+                "oauth_access_token": "old-token",
+            }]
+        }
+        updated_config = {
+            "current": "oauth",
+            "profiles": [{
+                "name": "oauth",
+                "mode": "OAuth",
+                "oauth_access_token": "new-token",
+            }]
+        }
+
+        try:
+            with open(config_path, 'w') as f:
+                json.dump(initial_config, f)
+
+            # 默认 allow_config_force_rewrite=False（mcp-proxy / 用户默认路径）
+            provider = CLIProfileCredentialsProvider()
+            provider._write_configuration_to_file_with_lock(config_path, updated_config)
+
+            with open(config_path, 'r') as f:
+                loaded_config = json.load(f)
+            self.assertEqual(loaded_config, updated_config)
+
+            tmp_files = [name for name in os.listdir(temp_dir) if '.tmp-' in name or name.endswith('.backup')]
+            self.assertEqual(tmp_files, [])
+
+        finally:
+            import shutil
+            shutil.rmtree(temp_dir, ignore_errors=True)
+
+    def test_default_profile_file_uses_os_sep(self):
+        """默认 config 路径应按平台分隔符拼接，避免 Windows 混用 \\ 与 /"""
+        provider = CLIProfileCredentialsProvider()
+        expected = os.path.join(ac.HOME, ".aliyun", "config.json")
+        self.assertEqual(provider._profile_file, expected)
+        self.assertTrue(provider._profile_file.endswith(os.path.join(".aliyun", "config.json")))
+
+    def test_write_configuration_to_file_with_lock_windows_inplace(self):
+        """Windows 带锁路径应走原地写入，避免对已打开目标文件做 replace"""
+        import tempfile
+        import json
+        from unittest.mock import patch
+
+        temp_dir = tempfile.mkdtemp()
+        config_path = os.path.join(temp_dir, "config.json")
+        updated_config = {"current": "win", "profiles": [{"name": "win", "mode": "AK"}]}
+
+        try:
+            with open(config_path, 'w') as f:
+                json.dump({"current": "old"}, f)
+
+            provider = CLIProfileCredentialsProvider()
+            with patch('alibabacloud_credentials.provider.cli_profile.platform.system', return_value='Windows'):
+                with patch('alibabacloud_credentials.provider.cli_profile.os.replace') as mock_replace:
+                    provider._write_configuration_to_file_with_lock(config_path, updated_config)
+                    mock_replace.assert_not_called()
+
+            with open(config_path, 'r') as f:
+                self.assertEqual(json.load(f), updated_config)
         finally:
             import shutil
             shutil.rmtree(temp_dir, ignore_errors=True)
@@ -1811,6 +1926,319 @@ class TestCLIProfileCredentialsProvider(unittest.TestCase):
             self.assertIsNotNone(level2_profile, "Level2 chainable profile should exist")
             self.assertNotIn('oauth_refresh_token', level2_profile, "Level2 profile should not have oauth_refresh_token")
 
+        finally:
+            import shutil
+            shutil.rmtree(temp_dir, ignore_errors=True)
+
+    def test_write_configuration_cleanup_temp_on_replace_error(self):
+        """os.replace 失败时应清理临时文件"""
+        import tempfile
+        from unittest.mock import patch
+
+        temp_dir = tempfile.mkdtemp()
+        config_path = os.path.join(temp_dir, "config.json")
+        try:
+            with open(config_path, 'w') as f:
+                f.write('{}')
+            provider = CLIProfileCredentialsProvider()
+            with patch('alibabacloud_credentials.provider.cli_profile.os.replace', side_effect=OSError('boom')):
+                with self.assertRaises(OSError):
+                    provider._write_configuration_to_file(config_path, {"current": "x"})
+            tmp_files = [n for n in os.listdir(temp_dir) if '.tmp-' in n]
+            self.assertEqual(tmp_files, [])
+        finally:
+            import shutil
+            shutil.rmtree(temp_dir, ignore_errors=True)
+
+    def test_write_configuration_with_lock_creates_missing_file(self):
+        import tempfile
+        import json
+
+        temp_dir = tempfile.mkdtemp()
+        config_path = os.path.join(temp_dir, "missing", "config.json")
+        os.makedirs(os.path.dirname(config_path))
+        try:
+            provider = CLIProfileCredentialsProvider()
+            # path does not exist yet — with_lock creates empty then writes
+            # first ensure parent exists; file itself missing
+            cfg = {"current": "created", "profiles": [{"name": "created", "mode": "AK"}]}
+            # remove if somehow exists
+            if os.path.exists(config_path):
+                os.remove(config_path)
+            provider._write_configuration_to_file_with_lock(config_path, cfg)
+            with open(config_path) as f:
+                self.assertEqual(json.load(f), cfg)
+        finally:
+            import shutil
+            shutil.rmtree(temp_dir, ignore_errors=True)
+
+    def test_write_configuration_unlock_oserror_ignored(self):
+        import tempfile
+        import json
+        import platform
+        from unittest.mock import patch
+
+        if platform.system() == 'Windows':
+            self.skipTest('fcntl unlock path only applies on Unix')
+
+        temp_dir = tempfile.mkdtemp()
+        config_path = os.path.join(temp_dir, "config.json")
+        updated = {"current": "u", "profiles": []}
+        try:
+            with open(config_path, 'w') as f:
+                json.dump({"current": "old"}, f)
+            provider = CLIProfileCredentialsProvider()
+            with patch('alibabacloud_credentials.provider.cli_profile.HAS_FCNTL', True), \
+                 patch('alibabacloud_credentials.provider.cli_profile.HAS_MSVCRT', False), \
+                 patch('alibabacloud_credentials.provider.cli_profile.fcntl') as mock_fcntl:
+                mock_fcntl.flock.side_effect = [None, OSError('unlock failed')]
+                mock_fcntl.LOCK_EX = 2
+                mock_fcntl.LOCK_UN = 8
+                provider._write_configuration_to_file_with_lock(config_path, updated)
+            with open(config_path) as f:
+                self.assertEqual(json.load(f), updated)
+        finally:
+            import shutil
+            shutil.rmtree(temp_dir, ignore_errors=True)
+
+    def test_update_external_credentials_via_source_profile(self):
+        import tempfile
+        import json
+
+        temp_dir = tempfile.mkdtemp()
+        config_path = os.path.join(temp_dir, "config.json")
+        cfg = {
+            "current": "chain",
+            "profiles": [
+                {"name": "chain", "mode": "ChainableRamRoleArn", "source_profile": "external_source"},
+                {"name": "external_source", "mode": "External", "process_command": "echo"},
+            ],
+        }
+        try:
+            with open(config_path, 'w') as f:
+                json.dump(cfg, f)
+            provider = CLIProfileCredentialsProvider(profile_name="chain", profile_file=config_path)
+            provider._update_external_credentials("ak2", "sk2", "tok2", 99)
+            with open(config_path) as f:
+                updated = json.load(f)
+            ext = next(p for p in updated['profiles'] if p['name'] == 'external_source')
+            self.assertEqual(ext['access_key_id'], 'ak2')
+            self.assertEqual(ext['access_key_secret'], 'sk2')
+            self.assertEqual(ext['sts_token'], 'tok2')
+            self.assertEqual(ext['sts_expiration'], 99)
+        finally:
+            import shutil
+            shutil.rmtree(temp_dir, ignore_errors=True)
+
+    def test_update_external_credentials_profile_missing(self):
+        import tempfile
+        import json
+        from alibabacloud_credentials.exceptions import CredentialException
+
+        temp_dir = tempfile.mkdtemp()
+        config_path = os.path.join(temp_dir, "config.json")
+        try:
+            with open(config_path, 'w') as f:
+                json.dump({"current": "gone", "profiles": [{"name": "other", "mode": "AK"}]}, f)
+            provider = CLIProfileCredentialsProvider(profile_name="gone", profile_file=config_path)
+            with self.assertRaises(CredentialException):
+                provider._update_external_credentials("a", "b", "c", 1)
+        finally:
+            import shutil
+            shutil.rmtree(temp_dir, ignore_errors=True)
+
+    def test_update_external_credentials_no_current(self):
+        import tempfile
+        import json
+        from alibabacloud_credentials.exceptions import CredentialException
+
+        temp_dir = tempfile.mkdtemp()
+        config_path = os.path.join(temp_dir, "config.json")
+        try:
+            with open(config_path, 'w') as f:
+                json.dump({"profiles": [{"name": "x", "mode": "External"}]}, f)
+            provider = CLIProfileCredentialsProvider(profile_file=config_path)
+            with self.assertRaises(CredentialException):
+                provider._update_external_credentials("a", "b", "c", 1)
+        finally:
+            import shutil
+            shutil.rmtree(temp_dir, ignore_errors=True)
+
+    def test_write_configuration_async_overwrite_existing(self):
+        import tempfile
+        import json
+
+        temp_dir = tempfile.mkdtemp()
+        config_path = os.path.join(temp_dir, "config.json")
+        updated = {"current": "async-new", "profiles": [{"name": "async-new", "mode": "AK"}]}
+        try:
+            with open(config_path, 'w') as f:
+                json.dump({"current": "old"}, f)
+
+            provider = CLIProfileCredentialsProvider()
+
+            async def run():
+                await provider._write_configuration_to_file_async(config_path, updated)
+
+            asyncio.run(run())
+            with open(config_path) as f:
+                self.assertEqual(json.load(f), updated)
+            self.assertEqual([n for n in os.listdir(temp_dir) if '.tmp-' in n], [])
+        finally:
+            import shutil
+            shutil.rmtree(temp_dir, ignore_errors=True)
+
+    def test_write_configuration_async_cleanup_on_replace_error(self):
+        import tempfile
+        from unittest.mock import patch
+
+        temp_dir = tempfile.mkdtemp()
+        config_path = os.path.join(temp_dir, "config.json")
+        try:
+            with open(config_path, 'w') as f:
+                f.write('{}')
+            provider = CLIProfileCredentialsProvider()
+
+            async def run():
+                with patch('alibabacloud_credentials.provider.cli_profile.os.replace', side_effect=OSError('boom')):
+                    await provider._write_configuration_to_file_async(config_path, {"current": "x"})
+
+            with self.assertRaises(OSError):
+                asyncio.run(run())
+            self.assertEqual([n for n in os.listdir(temp_dir) if '.tmp-' in n], [])
+        finally:
+            import shutil
+            shutil.rmtree(temp_dir, ignore_errors=True)
+
+    def test_write_configuration_with_lock_async_overwrite(self):
+        import tempfile
+        import json
+
+        temp_dir = tempfile.mkdtemp()
+        config_path = os.path.join(temp_dir, "config.json")
+        updated = {"current": "lock-async", "profiles": []}
+        try:
+            with open(config_path, 'w') as f:
+                json.dump({"current": "old"}, f)
+            provider = CLIProfileCredentialsProvider()
+
+            async def run():
+                await provider._write_configuration_to_file_with_lock_async(config_path, updated)
+
+            asyncio.run(run())
+            with open(config_path) as f:
+                self.assertEqual(json.load(f), updated)
+        finally:
+            import shutil
+            shutil.rmtree(temp_dir, ignore_errors=True)
+
+    def test_write_configuration_with_lock_async_creates_missing(self):
+        import tempfile
+        import json
+
+        temp_dir = tempfile.mkdtemp()
+        config_path = os.path.join(temp_dir, "newdir", "config.json")
+        os.makedirs(os.path.dirname(config_path))
+        updated = {"current": "created-async", "profiles": []}
+        try:
+            provider = CLIProfileCredentialsProvider()
+
+            async def run():
+                await provider._write_configuration_to_file_with_lock_async(config_path, updated)
+
+            asyncio.run(run())
+            with open(config_path) as f:
+                self.assertEqual(json.load(f), updated)
+        finally:
+            import shutil
+            shutil.rmtree(temp_dir, ignore_errors=True)
+
+    def test_write_configuration_with_lock_async_windows_inplace(self):
+        import tempfile
+        import json
+        from unittest.mock import patch
+
+        temp_dir = tempfile.mkdtemp()
+        config_path = os.path.join(temp_dir, "config.json")
+        updated = {"current": "win-async", "profiles": [{"name": "win", "mode": "AK"}]}
+        try:
+            with open(config_path, 'w') as f:
+                json.dump({"current": "old"}, f)
+            provider = CLIProfileCredentialsProvider()
+
+            async def run():
+                with patch('alibabacloud_credentials.provider.cli_profile.platform.system', return_value='Windows'):
+                    with patch('alibabacloud_credentials.provider.cli_profile.os.replace') as mock_replace:
+                        await provider._write_configuration_to_file_with_lock_async(config_path, updated)
+                        mock_replace.assert_not_called()
+
+            asyncio.run(run())
+            with open(config_path) as f:
+                self.assertEqual(json.load(f), updated)
+        finally:
+            import shutil
+            shutil.rmtree(temp_dir, ignore_errors=True)
+
+    def test_write_configuration_async_unlock_oserror_ignored(self):
+        import tempfile
+        import json
+        import platform
+        from unittest.mock import patch
+
+        if platform.system() == 'Windows':
+            self.skipTest('fcntl unlock path only applies on Unix')
+
+        temp_dir = tempfile.mkdtemp()
+        config_path = os.path.join(temp_dir, "config.json")
+        updated = {"current": "u2", "profiles": []}
+        try:
+            with open(config_path, 'w') as f:
+                json.dump({"current": "old"}, f)
+            provider = CLIProfileCredentialsProvider()
+
+            async def run():
+                with patch('alibabacloud_credentials.provider.cli_profile.HAS_FCNTL', True), \
+                     patch('alibabacloud_credentials.provider.cli_profile.HAS_MSVCRT', False), \
+                     patch('alibabacloud_credentials.provider.cli_profile.fcntl') as mock_fcntl:
+                    mock_fcntl.flock.side_effect = [None, OSError('unlock failed')]
+                    mock_fcntl.LOCK_EX = 2
+                    mock_fcntl.LOCK_UN = 8
+                    await provider._write_configuration_to_file_with_lock_async(config_path, updated)
+
+            asyncio.run(run())
+            with open(config_path) as f:
+                self.assertEqual(json.load(f), updated)
+        finally:
+            import shutil
+            shutil.rmtree(temp_dir, ignore_errors=True)
+
+    def test_update_external_credentials_async_via_source_profile(self):
+        import tempfile
+        import json
+
+        temp_dir = tempfile.mkdtemp()
+        config_path = os.path.join(temp_dir, "config.json")
+        cfg = {
+            "current": "chain",
+            "profiles": [
+                {"name": "chain", "mode": "ChainableRamRoleArn", "source_profile": "external_source"},
+                {"name": "external_source", "mode": "External", "process_command": "echo"},
+            ],
+        }
+        try:
+            with open(config_path, 'w') as f:
+                json.dump(cfg, f)
+            provider = CLIProfileCredentialsProvider(profile_name="chain", profile_file=config_path)
+
+            async def run():
+                await provider._update_external_credentials_async("ak3", "sk3", "tok3", 100)
+
+            asyncio.run(run())
+            with open(config_path) as f:
+                updated = json.load(f)
+            ext = next(p for p in updated['profiles'] if p['name'] == 'external_source')
+            self.assertEqual(ext['access_key_id'], 'ak3')
+            self.assertEqual(ext['sts_expiration'], 100)
         finally:
             import shutil
             shutil.rmtree(temp_dir, ignore_errors=True)
