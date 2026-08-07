@@ -311,14 +311,13 @@ class TestOAuthCredentialsProvider(unittest.TestCase):
 
     def test_get_stale_time_positive_expiration(self):
         """
-        Test case 16: _get_stale_time with positive expiration returns expiration - 15 minutes
+        Test case 16: _get_stale_time uses the actual expiration time
         """
         expiration = 1672531199  # 2023-01-01 00:00:00 UTC
-        expected_stale_time = expiration - 15 * 60  # 15 minutes before
 
         stale_time = _get_stale_time(expiration)
 
-        self.assertEqual(stale_time, expected_stale_time)
+        self.assertEqual(stale_time, expiration)
 
     def test_get_stale_time_negative_expiration(self):
         """
@@ -1310,12 +1309,145 @@ class TestOAuthCredentialsProvider(unittest.TestCase):
 
         # 验证凭据成功获取
         self.assertIsNotNone(credentials)
-        
+
         # 验证调用了两次（触发了刷新）
         self.assertEqual(mock_do_action.call_count, 2)
-        
+
         # 验证 token 被刷新
         self.assertEqual(provider._access_token, "new_access_token")
+
+    @patch('alibabacloud_credentials.provider.oauth.TeaCore.do_action')
+    def test_reuse_cached_sts_when_not_expired(self, mock_do_action):
+        """When a valid cached STS credential is supplied (sts_expiration in the
+        future), the provider reuses it WITHOUT calling /v1/exchange or the
+        token-update callback — matching the aliyun-cli OAuth behaviour of
+        reusing cached STS until it expires."""
+        future = int(time.mktime(time.localtime())) + 3600  # 1 hour ahead
+
+        callback_called = False
+
+        def callback(*args):
+            nonlocal callback_called
+            callback_called = True
+
+        provider = OAuthCredentialsProvider(
+            client_id="123",
+            sign_in_url="https://oauth.aliyun.com",
+            access_token=self.access_token,
+            access_token_expire=self.access_token_expire,
+            refresh_token=self.refresh_token,
+            access_key_id="STS.cached",
+            access_key_secret="cached_secret",
+            security_token="cached_sts_token",
+            sts_expiration=future,
+            token_update_callback=callback,
+        )
+
+        credentials = provider.get_credentials()
+
+        self.assertEqual(credentials.get_access_key_id(), "STS.cached")
+        self.assertEqual(credentials.get_access_key_secret(), "cached_secret")
+        self.assertEqual(credentials.get_security_token(), "cached_sts_token")
+        self.assertEqual(credentials.get_expiration(), future)
+        self.assertEqual(credentials.get_provider_name(), "oauth")
+
+        # No network exchange and no config write-back.
+        mock_do_action.assert_not_called()
+        self.assertFalse(callback_called)
+
+    @patch('alibabacloud_credentials.provider.oauth.TeaCore.do_action')
+    def test_reuse_cached_sts_until_actual_expiration(self, mock_do_action):
+        """A cached STS credential near expiration remains cached without
+        repeatedly entering the refresh path."""
+        future = int(time.mktime(time.localtime())) + 60
+
+        provider = OAuthCredentialsProvider(
+            client_id="123",
+            sign_in_url="https://oauth.aliyun.com",
+            access_token=self.access_token,
+            access_token_expire=self.access_token_expire,
+            refresh_token=self.refresh_token,
+            access_key_id="STS.cached",
+            access_key_secret="cached_secret",
+            security_token="cached_sts_token",
+            sts_expiration=future,
+        )
+
+        first = provider.get_credentials()
+        second = provider.get_credentials()
+
+        self.assertIs(first, second)
+        self.assertEqual(provider._credentials_cache._cached_value.stale_time(), future)
+        mock_do_action.assert_not_called()
+
+    @patch('alibabacloud_credentials.provider.oauth.TeaCore.do_action')
+    def test_exchange_when_cached_sts_expired(self, mock_do_action):
+        """When the cached STS credential is already expired, the provider falls
+        back to /v1/exchange to obtain a fresh credential."""
+        mock_do_action.return_value = self.mock_response
+        past = int(time.mktime(time.localtime())) - 10  # already expired
+
+        provider = OAuthCredentialsProvider(
+            client_id="123",
+            sign_in_url="https://oauth.aliyun.com",
+            access_token=self.access_token,
+            access_token_expire=self.access_token_expire,
+            refresh_token=self.refresh_token,
+            access_key_id="STS.stale",
+            access_key_secret="stale_secret",
+            security_token="stale_sts_token",
+            sts_expiration=past,
+        )
+
+        credentials = provider.get_credentials()
+
+        # Exchange happened and returned the fresh (mock) credential.
+        mock_do_action.assert_called_once()
+        self.assertEqual(credentials.get_access_key_id(), self.access_key_id)
+
+    @patch('alibabacloud_credentials.provider.oauth.TeaCore.do_action')
+    def test_exchange_when_no_cached_sts(self, mock_do_action):
+        """Backward compatibility: with no cached STS fields, behaviour is
+        unchanged — the provider always exchanges."""
+        mock_do_action.return_value = self.mock_response
+
+        provider = OAuthCredentialsProvider(
+            client_id="123",
+            sign_in_url="https://oauth.aliyun.com",
+            access_token=self.access_token,
+            access_token_expire=self.access_token_expire,
+            refresh_token=self.refresh_token,
+        )
+
+        credentials = provider.get_credentials()
+
+        mock_do_action.assert_called_once()
+        self.assertEqual(credentials.get_access_key_id(), self.access_key_id)
+
+    @patch('alibabacloud_credentials.provider.oauth.TeaCore.async_do_action')
+    def test_reuse_cached_sts_when_not_expired_async(self, mock_async_do_action):
+        """Async variant: a valid cached STS is reused without an exchange."""
+        future = int(time.mktime(time.localtime())) + 3600
+
+        provider = OAuthCredentialsProvider(
+            client_id="123",
+            sign_in_url="https://oauth.aliyun.com",
+            access_token=self.access_token,
+            access_token_expire=self.access_token_expire,
+            refresh_token=self.refresh_token,
+            access_key_id="STS.cached",
+            access_key_secret="cached_secret",
+            security_token="cached_sts_token",
+            sts_expiration=future,
+        )
+
+        async def run_test():
+            return await provider.get_credentials_async()
+
+        credentials = asyncio.run(run_test())
+
+        self.assertEqual(credentials.get_access_key_id(), "STS.cached")
+        mock_async_do_action.assert_not_called()
 
     @patch('Tea.core.TeaCore.do_action')
     def test_oauth_token_refresh_timing_edge_case_none_token(self, mock_do_action):
@@ -1361,4 +1493,3 @@ class TestOAuthCredentialsProvider(unittest.TestCase):
         
         # 验证 token 被刷新
         self.assertEqual(provider._access_token, "new_access_token")
-

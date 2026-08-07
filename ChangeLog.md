@@ -1,3 +1,6 @@
+### 2026-08-07 Version 1.0.11
+* Reuse cached OAuth STS credentials until they expire.
+
 ### 2026-07-15 Version 1.0.10
 * Fix Windows OAuth config.json update: use os.replace / in-place write so overwriting existing config no longer fails with WinError 183.
 * Normalize default config path separators via os.path.join.
