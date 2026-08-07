@@ -230,6 +230,13 @@ class CLIProfileCredentialsProvider(ICredentialsProvider):
                         access_token=profile.get('oauth_access_token'),
                         access_token_expire=profile.get('oauth_access_token_expire'),
                         refresh_token=profile.get('oauth_refresh_token'),
+                        # Reuse the STS credential persisted by a previous
+                        # exchange until it expires, instead of exchanging on
+                        # every resolve (matches aliyun-cli behaviour).
+                        access_key_id=profile.get('access_key_id'),
+                        access_key_secret=profile.get('access_key_secret'),
+                        security_token=profile.get('sts_token'),
+                        sts_expiration=profile.get('sts_expiration'),
                         token_update_callback=self._get_oauth_token_update_callback(),
                         token_update_callback_async=self._get_oauth_token_update_callback_async(),
                     )

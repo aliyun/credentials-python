@@ -25,7 +25,11 @@ OAuthTokenUpdateCallbackAsync = Callable[[str, str, str, str, str, int, int], No
 def _get_stale_time(expiration: int) -> int:
     if expiration < 0:
         return int(time.mktime(time.localtime())) + 60 * 60
-    return expiration - 15 * 60
+    # OAuth STS credentials are persisted in the CLI profile and should be
+    # reused for their complete lifetime.  Using an earlier stale time causes
+    # every credentials lookup near expiration to enter the refresh path even
+    # though the persisted STS credential is still valid.
+    return expiration
 
 
 class OAuthCredentialsProvider(ICredentialsProvider):
@@ -38,6 +42,10 @@ class OAuthCredentialsProvider(ICredentialsProvider):
                  access_token: str = None,
                  access_token_expire: int = 0,
                  refresh_token: str = None,
+                 access_key_id: str = None,
+                 access_key_secret: str = None,
+                 security_token: str = None,
+                 sts_expiration: int = None,
                  http_options: HttpOptions = None,
                  token_update_callback: Optional[OAuthTokenUpdateCallback] = None,
                  token_update_callback_async: Optional[OAuthTokenUpdateCallbackAsync] = None):
@@ -53,6 +61,14 @@ class OAuthCredentialsProvider(ICredentialsProvider):
         self._access_token = access_token
         self._access_token_expire = access_token_expire
         self._refresh_token = refresh_token
+        # Cached STS credential previously obtained from a token exchange and
+        # persisted alongside the OAuth tokens (e.g. in the CLI config file).
+        # Reusing it until ``sts_expiration`` avoids exchanging on every fresh
+        # provider build, matching aliyun-cli's OAuth resolution.
+        self._sts_access_key_id = access_key_id
+        self._sts_access_key_secret = access_key_secret
+        self._sts_security_token = security_token
+        self._sts_expiration = sts_expiration
         self._token_update_callback = token_update_callback
         self._token_update_callback_async = token_update_callback_async
 
@@ -72,6 +88,36 @@ class OAuthCredentialsProvider(ICredentialsProvider):
 
     async def get_credentials_async(self) -> Credentials:
         return await self._credentials_cache._async_call()
+
+    def _reuse_cached_sts(self) -> Optional[RefreshResult]:
+        """Return the cached STS credential when it is still valid.
+
+        Mirrors aliyun-cli's OAuth handling (config/profile.go): if a previously
+        exchanged STS credential is present and not yet expired, reuse it instead
+        of calling ``/v1/exchange``. This keeps a rotating STS AccessKey id stable
+        across fresh provider builds and, crucially, avoids re-triggering the
+        token-update callback (which rewrites the config file) on every resolve.
+        """
+        if (self._sts_access_key_id and self._sts_access_key_secret
+                and self._sts_security_token and self._sts_expiration
+                and self._sts_expiration > int(time.mktime(time.localtime()))):
+            credentials = Credentials(
+                access_key_id=self._sts_access_key_id,
+                access_key_secret=self._sts_access_key_secret,
+                security_token=self._sts_security_token,
+                expiration=self._sts_expiration,
+                provider_name=self.get_provider_name(),
+            )
+            return RefreshResult(value=credentials,
+                                 stale_time=_get_stale_time(self._sts_expiration))
+        return None
+
+    def _store_exchanged_sts(self, credentials: Credentials, expiration: int) -> None:
+        """Remember the freshly exchanged STS so later resolves can reuse it."""
+        self._sts_access_key_id = credentials.get_access_key_id()
+        self._sts_access_key_secret = credentials.get_access_key_secret()
+        self._sts_security_token = credentials.get_security_token()
+        self._sts_expiration = expiration
 
     def _try_refresh_oauth_token(self) -> None:
         current_time = int(time.mktime(time.localtime()))
@@ -156,6 +202,10 @@ class OAuthCredentialsProvider(ICredentialsProvider):
         self._access_token_expire = new_access_token_expire
 
     def _refresh_credentials(self) -> RefreshResult[Credentials]:
+        cached = self._reuse_cached_sts()
+        if cached is not None:
+            return cached
+
         if self._refresh_token and (
                 self._access_token is None or self._access_token_expire <= 0 or self._access_token_expire - int(
                 time.mktime(time.localtime())) <= 1200):
@@ -198,6 +248,7 @@ class OAuthCredentialsProvider(ICredentialsProvider):
             expiration=expiration,
             provider_name=self.get_provider_name()
         )
+        self._store_exchanged_sts(credentials, expiration)
 
         # 调用令牌更新回调函数
         if self._token_update_callback:
@@ -218,6 +269,10 @@ class OAuthCredentialsProvider(ICredentialsProvider):
                              stale_time=_get_stale_time(expiration))
 
     async def _refresh_credentials_async(self) -> RefreshResult[Credentials]:
+        cached = self._reuse_cached_sts()
+        if cached is not None:
+            return cached
+
         if self._refresh_token and (
                 self._access_token is None or self._access_token_expire <= 0 or self._access_token_expire - int(
                 time.mktime(time.localtime())) <= 1200):
@@ -260,6 +315,7 @@ class OAuthCredentialsProvider(ICredentialsProvider):
             expiration=expiration,
             provider_name=self.get_provider_name()
         )
+        self._store_exchanged_sts(credentials, expiration)
 
         if self._token_update_callback_async:
             try:

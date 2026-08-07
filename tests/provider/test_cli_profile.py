@@ -294,15 +294,26 @@ class TestCLIProfileCredentialsProvider(unittest.TestCase):
 
     def test_get_credentials_valid_oauth(self):
         """
-        Test case 8: Valid input, successfully retrieves credentials for OAuth mode
+        Test case 8: Valid OAuth profile reuses its persisted STS credential
         """
+        future = int(time.mktime(time.localtime())) + 3600
+        config = json.loads(json.dumps(self.config))
+        oauth_profile = next(profile for profile in config['profiles']
+                             if profile['name'] == 'oauth_profile')
+        oauth_profile.update({
+            'access_key_id': 'cached_access_key_id',
+            'access_key_secret': 'cached_access_key_secret',
+            'sts_token': 'cached_security_token',
+            'sts_expiration': future,
+        })
+
         with patch('alibabacloud_credentials.provider.cli_profile.au.environment_cli_profile_disabled', False):
             with patch('os.path.exists', return_value=True):
                 with patch('os.path.isfile', return_value=True):
-                    with patch('alibabacloud_credentials.provider.cli_profile._load_config', return_value=self.config):
+                    with patch('alibabacloud_credentials.provider.cli_profile._load_config', return_value=config):
                         provider = CLIProfileCredentialsProvider(profile_name="oauth_profile")
 
-                        credentials_provider = provider._get_credentials_provider(config=self.config,
+                        credentials_provider = provider._get_credentials_provider(config=config,
                                                                                   profile_name="oauth_profile")
 
                         self.assertIsInstance(credentials_provider, OAuthCredentialsProvider)
@@ -311,6 +322,15 @@ class TestCLIProfileCredentialsProvider(unittest.TestCase):
                         self.assertEqual(credentials_provider._sign_in_url, 'https://oauth.aliyun.com')
                         self.assertEqual(credentials_provider._access_token, 'test_oauth_access_token')
                         self.assertTrue(credentials_provider._access_token_expire > int(time.mktime(time.localtime())))
+
+                        with patch('alibabacloud_credentials.provider.oauth.TeaCore.do_action') as mock_do_action:
+                            credentials = credentials_provider.get_credentials()
+
+                        self.assertEqual(credentials.get_access_key_id(), 'cached_access_key_id')
+                        self.assertEqual(credentials.get_access_key_secret(), 'cached_access_key_secret')
+                        self.assertEqual(credentials.get_security_token(), 'cached_security_token')
+                        self.assertEqual(credentials.get_expiration(), future)
+                        mock_do_action.assert_not_called()
 
     def test_get_credentials_valid_external(self):
         """
