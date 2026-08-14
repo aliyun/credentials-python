@@ -30,6 +30,7 @@ class AlibabaCloudCredentialsProvider:
             self.public_key_id = config.public_key_id
             self.role_name = config.role_name
             self.disable_imds_v1 = config.disable_imds_v1
+            self.enable_imds_v2 = config.enable_imds_v2
             self.oidc_provider_arn = config.oidc_provider_arn
             self.oidc_token_file_path = config.oidc_token_file_path
             self.private_key_file = config.private_key_file
@@ -114,37 +115,70 @@ class EcsRamRoleCredentialProvider(AlibabaCloudCredentialsProvider):
         self.__metadata_service_host = "100.100.100.200"
         self._set_arg('role_name', role_name)
         self.disable_imds_v1 = au.environment_imds_v1_disabled and au.environment_imds_v1_disabled.lower() == 'true'
+        self.enable_imds_v2 = self._resolve_enable_imds_v2(None)
 
         if isinstance(config, Config):
             self.disable_imds_v1 = config.disable_imds_v1 is not None and config.disable_imds_v1 == True
+            self.enable_imds_v2 = self._resolve_enable_imds_v2(config.enable_imds_v2)
 
-    def _get_role_name(self, url=None):
+    @staticmethod
+    def _resolve_enable_imds_v2(enable_imds_v2):
+        if enable_imds_v2 is not None:
+            return bool(enable_imds_v2)
+        env = au.environment_ecs_imdsv2_enable
+        if env is not None and str(env).lower() == 'false':
+            return False
+        return True
+
+    def _should_fallback_to_imds_v1(self, metadata_token):
+        return metadata_token is not None and not self.disable_imds_v1
+
+    def _new_get_request(self, pathname, url=None, metadata_token=None):
         tea_request = ph.get_new_request()
         tea_request.headers['host'] = url if url else self.__metadata_service_host
-        metadata_token = self._get_metadata_token(url)
-        if metadata_token is not None:
+        if metadata_token:
             tea_request.headers['X-aliyun-ecs-metadata-token'] = metadata_token
         if not url:
-            tea_request.pathname = self.__url_in_ecs_metadata
+            tea_request.pathname = pathname
+        return tea_request
+
+    def _get_role_name(self, url=None):
+        metadata_token = self._get_metadata_token(url)
+        try:
+            self.role_name = self._do_get_role_name(url, metadata_token)
+        except Exception:
+            if self._should_fallback_to_imds_v1(metadata_token):
+                self.role_name = self._do_get_role_name(url, None)
+            else:
+                raise
+
+    async def _get_role_name_async(self, url=None):
+        metadata_token = await self._get_metadata_token_async(url)
+        try:
+            self.role_name = await self._do_get_role_name_async(url, metadata_token)
+        except Exception:
+            if self._should_fallback_to_imds_v1(metadata_token):
+                self.role_name = await self._do_get_role_name_async(url, None)
+            else:
+                raise
+
+    def _do_get_role_name(self, url, metadata_token):
+        tea_request = self._new_get_request(self.__url_in_ecs_metadata, url, metadata_token)
         response = TeaCore.do_action(tea_request)
         if response.status_code != 200:
             raise CredentialException(self.__ecs_metadata_fetch_error_msg + " HttpCode=" + str(response.status_code))
-        self.role_name = response.body.decode('utf-8')
+        return response.body.decode('utf-8')
 
-    async def _get_role_name_async(self, url=None):
-        tea_request = ph.get_new_request()
-        tea_request.headers['host'] = url if url else self.__metadata_service_host
-        metadata_token = await self._get_metadata_token_async(url)
-        if metadata_token is not None:
-            tea_request.headers['X-aliyun-ecs-metadata-token'] = metadata_token
-        if not url:
-            tea_request.pathname = self.__url_in_ecs_metadata
+    async def _do_get_role_name_async(self, url, metadata_token):
+        tea_request = self._new_get_request(self.__url_in_ecs_metadata, url, metadata_token)
         response = await TeaCore.async_do_action(tea_request)
         if response.status_code != 200:
             raise CredentialException(self.__ecs_metadata_fetch_error_msg + " HttpCode=" + str(response.status_code))
-        self.role_name = response.body.decode('utf-8')
+        return response.body.decode('utf-8')
 
     def _get_metadata_token(self, url=None):
+        if not self.enable_imds_v2:
+            return None
         tea_request = ph.get_new_request()
         tea_request.method = 'PUT'
         tea_request.headers['host'] = url if url else self.__metadata_service_host
@@ -163,6 +197,8 @@ class EcsRamRoleCredentialProvider(AlibabaCloudCredentialsProvider):
             return None
 
     async def _get_metadata_token_async(self, url=None):
+        if not self.enable_imds_v2:
+            return None
         tea_request = ph.get_new_request()
         tea_request.method = 'PUT'
         tea_request.headers['host'] = url if url else self.__metadata_service_host
@@ -181,14 +217,16 @@ class EcsRamRoleCredentialProvider(AlibabaCloudCredentialsProvider):
             return None
 
     def _create_credential(self, url=None):
-        tea_request = ph.get_new_request()
-        tea_request.headers['host'] = url if url else self.__metadata_service_host
         metadata_token = self._get_metadata_token(url)
-        if metadata_token is not None:
-            tea_request.headers['X-aliyun-ecs-metadata-token'] = metadata_token
-        if not url:
-            tea_request.pathname = self.__url_in_ecs_metadata + self.role_name
-        # request
+        try:
+            return self._do_create_credential(url, metadata_token)
+        except Exception:
+            if self._should_fallback_to_imds_v1(metadata_token):
+                return self._do_create_credential(url, None)
+            raise
+
+    def _do_create_credential(self, url, metadata_token):
+        tea_request = self._new_get_request(self.__url_in_ecs_metadata + self.role_name, url, metadata_token)
         response = TeaCore.do_action(tea_request)
 
         if response.status_code != 200:
@@ -204,9 +242,7 @@ class EcsRamRoleCredentialProvider(AlibabaCloudCredentialsProvider):
         if content_code != "Success":
             raise CredentialException(self.__ecs_metadata_fetch_error_msg)
 
-        # 先转换为时间数组
         time_array = time.strptime(content_expiration, "%Y-%m-%dT%H:%M:%SZ")
-        # 转换为时间戳
         time_stamp = calendar.timegm(time_array)
         return credentials.EcsRamRoleCredential(content_access_key_id, content_access_key_secret,
                                                 content_security_token, time_stamp, self)
@@ -217,15 +253,16 @@ class EcsRamRoleCredentialProvider(AlibabaCloudCredentialsProvider):
         return self._create_credential()
 
     async def _create_credential_async(self, url=None):
-        tea_request = ph.get_new_request()
-        tea_request.headers['host'] = url if url else self.__metadata_service_host
         metadata_token = await self._get_metadata_token_async(url)
-        if metadata_token is not None:
-            tea_request.headers['X-aliyun-ecs-metadata-token'] = metadata_token
-        if not url:
-            tea_request.pathname = self.__url_in_ecs_metadata + self.role_name
+        try:
+            return await self._do_create_credential_async(url, metadata_token)
+        except Exception:
+            if self._should_fallback_to_imds_v1(metadata_token):
+                return await self._do_create_credential_async(url, None)
+            raise
 
-        # request
+    async def _do_create_credential_async(self, url, metadata_token):
+        tea_request = self._new_get_request(self.__url_in_ecs_metadata + self.role_name, url, metadata_token)
         response = await TeaCore.async_do_action(tea_request)
 
         if response.status_code != 200:
@@ -241,9 +278,7 @@ class EcsRamRoleCredentialProvider(AlibabaCloudCredentialsProvider):
         if content_code != "Success":
             raise CredentialException(self.__ecs_metadata_fetch_error_msg)
 
-        # 先转换为时间数组
         time_array = time.strptime(content_expiration, "%Y-%m-%dT%H:%M:%SZ")
-        # 转换为时间戳
         time_stamp = calendar.timegm(time_array)
         return credentials.EcsRamRoleCredential(content_access_key_id, content_access_key_secret,
                                                 content_security_token, time_stamp, self)

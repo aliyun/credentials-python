@@ -92,7 +92,7 @@ class TestProviders(unittest.TestCase):
         self.assertEqual("roleName", prov.role_name)
         self.assertTrue(prov.disable_imds_v1)
 
-        auth_util.environment_imds_v1_disabled = None
+        auth_util.environment_imds_v1_disabled = 'false'
 
         cfg = models.Config()
         cfg.role_name = "roleNameConfig"
