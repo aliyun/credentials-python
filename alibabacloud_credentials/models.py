@@ -71,7 +71,6 @@ class Config(TeaModel):
         #### ECS RAM Role Type
         - `role_name` (str): Role name.
         - `disable_imds_v1` (bool, optional): Whether to disable IMDS v1. Default is `False`.
-        - `enable_imds_v2` (bool, optional): Whether to try IMDS v2 first. Default is `True`. Set to `False` to use IMDS v1 only.
 
         #### Credentials URI Type
         - `credentials_uri` (str): Credentials URI.

@@ -46,7 +46,6 @@ We recommend that you do not use parameters that are not listed in the following
 | role_session_name: the name of the custom session. The default format is `credentials-java-The current timestamp`.                                                                                                    | ×              | ×       | -                | ×                | -                 | ×                   | ×          |
 | role_name: specifies the name of the RAM role.                                                                                                                                                                                        | ×              | ×       | ×                | -                | ×                 | ×                   | ×          |
 | disable_imds_v1: specifies whether to forcibly use the security hardening mode (IMDSv2). If you set this parameter to true, the security hardening mode (IMDSv2) is used. Default value: `false`.                     | ×              | ×       | ×                | -                | ×                 | ×                   | ×          |
-| enable_imds_v2: specifies whether to try IMDSv2 first. Default value: `true`. Set to `false` to use IMDSv1 only (private clouds without IMDSv2).                                                                       | ×              | ×       | ×                | -                | ×                 | ×                   | ×          |
 | bearer_token: a bearer token.                                                                                                                                                                                                         | ×              | ×       | ×                | ×                | ×                 | ×                   | ✓          |
 | policy: a custom policy.                                                                                                                                                                                                              | ×              | ×       | -                | ×                | -                 | ×                   | ×          |
 | role_session_expiration: the session timeout period. Default value: 3600. Unit: seconds.                                                                                                                                              | ×              | ×       | -                | ×                | -                 | ×                   | ×          |
@@ -175,13 +174,11 @@ cred_type = credential.get_type()
 
 ECS instances and elastic container instances can be assigned RAM roles. Programs that run on the instances can use the Credentials tool to automatically obtain an STS token for the RAM role. The STS token can be used to initialize the Credentials client.
 
-By default, the Credentials tool accesses the metadata server of ECS in security hardening mode (IMDSv2). If an exception is thrown (token fetch failure, or a later role-name / STS credential request failure), the Credentials tool switches to the normal mode (IMDSv1). You can also configure the `disable_imds_v1` parameter or the *ALIBABA_CLOUD_IMDSV1_DISABLED* environment variable to specify the exception handling logic. Valid values:
+By default, the Credentials tool accesses the metadata server of ECS in security hardening mode (IMDSv2) with no extra enable switch. If any step on the hardening path fails (token fetch or a later metadata GET), the Credentials tool switches to the normal mode (IMDSv1). You can also configure the `disable_imds_v1` parameter or the *ALIBABA_CLOUD_IMDSV1_DISABLE* environment variable to specify the exception handling logic. Valid values:
 
 * false (default): The Credentials tool continues to obtain the access credential in normal mode (IMDSv1).
 
 * true: The exception is thrown and the Credentials tool continues to obtain the access credential in security hardening mode.
-
-On private clouds without IMDSv2, set `enable_imds_v2=False` or *ALIBABA_CLOUD_ECS_IMDSV2_ENABLE=false* to use IMDSv1 directly and skip the hardening-mode probe.
 
 The configurations for the metadata server determine whether the server supports the security hardening mode (IMDSv2).
 
@@ -197,8 +194,6 @@ credentialsConfig = CredConfig(
     role_name='<role_name>',
     # Default value: False. This parameter is optional. True: The security hardening mode (IMDSv2) is forcibly used. False: The system preferentially attempts to obtain the access credential in security hardening mode (IMDSv2). If the attempt fails, the system switches to the normal mode (IMDSv1) to obtain access credentials.
     # disable_imds_v1=True,
-    # Optional. Default: True. False: use IMDSv1 only and skip the IMDSv2 probe (private clouds without hardening mode).
-    # enable_imds_v2=False,
 )
 credentialsClient = CredClient(credentialsConfig)
 

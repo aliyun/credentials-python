@@ -134,7 +134,6 @@ class Client:
             provider = EcsRamRoleCredentialsProvider(
                 role_name=config.role_name,
                 disable_imds_v1=config.disable_imds_v1,
-                enable_imds_v2=config.enable_imds_v2,
                 http_options=HttpOptions(
                     read_timeout=config.timeout,
                     connect_timeout=config.connect_timeout,

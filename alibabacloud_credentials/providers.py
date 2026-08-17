@@ -30,7 +30,6 @@ class AlibabaCloudCredentialsProvider:
             self.public_key_id = config.public_key_id
             self.role_name = config.role_name
             self.disable_imds_v1 = config.disable_imds_v1
-            self.enable_imds_v2 = config.enable_imds_v2
             self.oidc_provider_arn = config.oidc_provider_arn
             self.oidc_token_file_path = config.oidc_token_file_path
             self.private_key_file = config.private_key_file
@@ -115,20 +114,9 @@ class EcsRamRoleCredentialProvider(AlibabaCloudCredentialsProvider):
         self.__metadata_service_host = "100.100.100.200"
         self._set_arg('role_name', role_name)
         self.disable_imds_v1 = au.environment_imds_v1_disabled and au.environment_imds_v1_disabled.lower() == 'true'
-        self.enable_imds_v2 = self._resolve_enable_imds_v2(None)
 
         if isinstance(config, Config):
             self.disable_imds_v1 = config.disable_imds_v1 is not None and config.disable_imds_v1 == True
-            self.enable_imds_v2 = self._resolve_enable_imds_v2(config.enable_imds_v2)
-
-    @staticmethod
-    def _resolve_enable_imds_v2(enable_imds_v2):
-        if enable_imds_v2 is not None:
-            return bool(enable_imds_v2)
-        env = au.environment_ecs_imdsv2_enable
-        if env is not None and str(env).lower() == 'false':
-            return False
-        return True
 
     def _should_fallback_to_imds_v1(self, metadata_token):
         return metadata_token is not None and not self.disable_imds_v1
@@ -177,8 +165,6 @@ class EcsRamRoleCredentialProvider(AlibabaCloudCredentialsProvider):
         return response.body.decode('utf-8')
 
     def _get_metadata_token(self, url=None):
-        if not self.enable_imds_v2:
-            return None
         tea_request = ph.get_new_request()
         tea_request.method = 'PUT'
         tea_request.headers['host'] = url if url else self.__metadata_service_host
@@ -197,8 +183,6 @@ class EcsRamRoleCredentialProvider(AlibabaCloudCredentialsProvider):
             return None
 
     async def _get_metadata_token_async(self, url=None):
-        if not self.enable_imds_v2:
-            return None
         tea_request = ph.get_new_request()
         tea_request.method = 'PUT'
         tea_request.headers['host'] = url if url else self.__metadata_service_host

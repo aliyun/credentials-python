@@ -28,7 +28,6 @@ class EcsRamRoleCredentialsProvider(ICredentialsProvider):
     def __init__(self, *,
                  role_name: str = None,
                  disable_imds_v1: bool = None,
-                 enable_imds_v2: bool = None,
                  http_options: HttpOptions = None,
                  async_update_enabled: bool = True):
 
@@ -44,7 +43,6 @@ class EcsRamRoleCredentialsProvider(ICredentialsProvider):
 
         self._role_name = role_name if role_name is not None else au.environment_ecs_metadata
         self._disable_imds_v1 = disable_imds_v1 if disable_imds_v1 is not None else str(au.environment_imds_v1_disabled or 'false').lower() == 'true'
-        self._enable_imds_v2 = self._resolve_enable_imds_v2(enable_imds_v2)
         self._http_options = http_options if http_options is not None else HttpOptions()
         self._runtime_options = {
             'connectTimeout': self._http_options.connect_timeout if self._http_options.connect_timeout is not None else EcsRamRoleCredentialsProvider.DEFAULT_CONNECT_TIMEOUT,
@@ -83,15 +81,6 @@ class EcsRamRoleCredentialsProvider(ICredentialsProvider):
 
     async def get_credentials_async(self) -> Credentials:
         return await self._credentials_cache._async_call()
-
-    @staticmethod
-    def _resolve_enable_imds_v2(enable_imds_v2: bool) -> bool:
-        if enable_imds_v2 is not None:
-            return bool(enable_imds_v2)
-        env = au.environment_ecs_imdsv2_enable
-        if env is not None and str(env).lower() == 'false':
-            return False
-        return True
 
     def _new_get_request(self, pathname: str, url: str = None, metadata_token: str = None):
         tea_request = ph.get_new_request()
@@ -138,8 +127,6 @@ class EcsRamRoleCredentialsProvider(ICredentialsProvider):
         return response.body.decode('utf-8')
 
     def _get_metadata_token(self, url: str = None) -> str:
-        if not self._enable_imds_v2:
-            return None
         tea_request = ph.get_new_request()
         tea_request.method = 'PUT'
         tea_request.headers['host'] = url if url else self.__metadata_service_host
@@ -159,8 +146,6 @@ class EcsRamRoleCredentialsProvider(ICredentialsProvider):
             return None
 
     async def _get_metadata_token_async(self, url: str = None) -> str:
-        if not self._enable_imds_v2:
-            return None
         tea_request = ph.get_new_request()
         tea_request.method = 'PUT'
         tea_request.headers['host'] = url if url else self.__metadata_service_host

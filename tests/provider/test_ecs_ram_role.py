@@ -51,7 +51,6 @@ class TestEcsRamRoleCredentialsProvider(unittest.TestCase):
 
             self.assertEqual(provider._role_name, self.role_name)
             self.assertEqual(provider._disable_imds_v1, self.disable_imds_v1)
-            self.assertTrue(provider._enable_imds_v2)
             self.assertEqual(provider._http_options, self.http_options)
             self.assertEqual(provider._runtime_options['connectTimeout'], self.http_options.connect_timeout)
             self.assertEqual(provider._runtime_options['readTimeout'], self.http_options.read_timeout)
@@ -580,35 +579,6 @@ class TestEcsRamRoleCredentialsProvider(unittest.TestCase):
                     )
                     self.assertEqual(provider._get_role_name(), self.role_name)
 
-    def test_enable_imds_v2_false_skips_token_put(self):
-        with patch('alibabacloud_credentials.provider.ecs_ram_role.au.environment_ecs_metadata_disabled', 'false'):
-            with patch('Tea.core.TeaCore.do_action') as mock_action:
-                provider = EcsRamRoleCredentialsProvider(
-                    role_name=self.role_name,
-                    enable_imds_v2=False,
-                    http_options=self.http_options,
-                    async_update_enabled=False
-                )
-                self.assertFalse(provider._enable_imds_v2)
-                self.assertIsNone(provider._get_metadata_token())
-                mock_action.assert_not_called()
-
-                mock_action.return_value = self.response
-                result = provider._refresh_credentials()
-                self.assertEqual(result.value().get_access_key_id(), self.access_key_id)
-                self.assertEqual(mock_action.call_count, 1)
-                req = mock_action.call_args[0][0]
-                self.assertNotIn('X-aliyun-ecs-metadata-token', req.headers)
-
-    def test_enable_imds_v2_false_from_env(self):
-        with patch('alibabacloud_credentials.provider.ecs_ram_role.au.environment_ecs_metadata_disabled', 'false'):
-            with patch('alibabacloud_credentials.provider.ecs_ram_role.au.environment_ecs_imdsv2_enable', 'false'):
-                provider = EcsRamRoleCredentialsProvider(
-                    role_name=self.role_name,
-                    async_update_enabled=False
-                )
-                self.assertFalse(provider._enable_imds_v2)
-
     def test_fallback_to_imds_v1_async_when_credential_get_fails_after_token(self):
         fail_response = TeaResponse()
         fail_response.status_code = 500
@@ -634,20 +604,6 @@ class TestEcsRamRoleCredentialsProvider(unittest.TestCase):
                     result = asyncio.run(run_test())
                     self.assertEqual(result.value().get_access_key_id(), self.access_key_id)
                     self.assertEqual(mock_action.call_count, 2)
-
-    def test_enable_imds_v2_false_skips_token_put_async(self):
-        with patch('alibabacloud_credentials.provider.ecs_ram_role.au.environment_ecs_metadata_disabled', 'false'):
-            provider = EcsRamRoleCredentialsProvider(
-                role_name=self.role_name,
-                enable_imds_v2=False,
-                http_options=self.http_options,
-                async_update_enabled=False
-            )
-
-            async def run_test():
-                return await provider._get_metadata_token_async()
-
-            self.assertIsNone(asyncio.run(run_test()))
 
     def test_fallback_role_name_async_when_get_fails_after_token(self):
         fail_response = TeaResponse()
@@ -686,7 +642,6 @@ class TestEcsRamRoleCredentialsProvider(unittest.TestCase):
                 with patch('Tea.core.TeaCore.do_action', side_effect=[role_response, self.response]):
                     provider = EcsRamRoleCredentialsProvider(
                         role_name='',
-                        enable_imds_v2=False,
                         http_options=self.http_options,
                         async_update_enabled=False
                     )
@@ -706,7 +661,6 @@ class TestEcsRamRoleCredentialsProvider(unittest.TestCase):
                            AsyncMock(side_effect=[role_response, self.response])):
                     provider = EcsRamRoleCredentialsProvider(
                         role_name=None,
-                        enable_imds_v2=False,
                         http_options=self.http_options,
                         async_update_enabled=False
                     )

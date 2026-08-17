@@ -11,7 +11,6 @@ environment_security_token = os.environ.get('ALIBABA_CLOUD_SECURITY_TOKEN')
 environment_ECSMeta_data = os.environ.get('ALIBABA_CLOUD_ECS_METADATA')
 environment_ecs_metadata = os.environ.get('ALIBABA_CLOUD_ECS_METADATA')
 environment_imds_v1_disabled = os.environ.get('ALIBABA_CLOUD_IMDSV1_DISABLED', 'false')
-environment_ecs_imdsv2_enable = os.environ.get('ALIBABA_CLOUD_ECS_IMDSV2_ENABLE')
 environment_ecs_metadata_disabled = os.environ.get('ALIBABA_CLOUD_ECS_METADATA_DISABLED', 'false')
 
 environment_credentials_file = os.environ.get('ALIBABA_CLOUD_CREDENTIALS_FILE')

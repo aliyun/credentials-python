@@ -45,7 +45,6 @@ Credentials工具的配置参数定义在`alibabacloud_credentials.models`模块
 | role_session_name：自定义会话名称，默认格式为`credentials-python-当前时间的时间戳`。                                                  | ×              | ×       | -                | ×                | -                 | ×                   | ×          |
 | role_name：RAM角色名称。                                                                                                             | ×              | ×       | ×                | -                | ×                 | ×                   | ×          |
 | disable_imds_v1：是否强制使用加固模式，默认值为`false`。                                                                        | ×              | ×       | ×                | -                | ×                 | ×                   | ×          |
-| enable_imds_v2：是否先尝试加固模式（IMDSv2），默认值为`true`。设为`false`则直接使用普通模式（IMDSv1），适用于无加固模式的专有云。 | ×              | ×       | ×                | -                | ×                 | ×                   | ×          |
 | bearer_token：bearer token。                                                                                                     | ×              | ×       | ×                | ×                | ×                 | ×                   | √          |
 | policy：自定义权限策略。                                                                                                                | ×              | ×       | -                | ×                | -                 | ×                   | ×          |
 | role_session_expiration：会话过期时间，默认3600秒。                                                                                        | ×              | ×       | -                | ×                | -                 | ×                   | ×          |
@@ -175,13 +174,11 @@ cred_type = credential.get_type()
 
 ECS和ECI实例均支持绑定实例RAM角色，运行于实例中的程序可通过Credentials工具自动获取该角色的STS Token，从而完成凭据客户端的初始化。
 
-Credentials工具将默认采用加固模式（IMDSv2）访问ECS的元数据服务（Meta Data Server），在使用加固模式时若发生异常（包括获取 token 失败，以及后续获取角色名或临时凭据失败），将使用普通模式兜底来获取访问凭据。您也可以通过设置参数`disable_imds_v1`或环境变量 *ALIBABA_CLOUD_IMDSV1_DISABLED* ，执行不同的异常处理逻辑：
+Credentials工具将默认采用加固模式（IMDSv2）访问ECS的元数据服务（Meta Data Server），无需额外开启开关。加固路径中任意一步失败（获取 Token 或后续元数据 GET）时，将使用普通模式（IMDSv1）兜底。您也可以通过设置参数`disable_imds_v1`或环境变量 *ALIBABA_CLOUD_IMDSV1_DISABLE* ，执行不同的异常处理逻辑：
 
 - 当值为false（默认值）时，会使用普通模式继续获取访问凭据。
 
 - 当值为true时，表示只能使用加固模式获取访问凭据，会抛出异常。
-
-专有云等环境若没有加固模式，可通过参数`enable_imds_v2=False`或环境变量 *ALIBABA_CLOUD_ECS_IMDSV2_ENABLE=false* 直接使用普通模式（IMDSv1），跳过加固模式探测。
 
 服务端是否支持IMDSv2，取决于您在服务器的配置。
 
@@ -200,8 +197,6 @@ credentialsConfig = CredConfig(
     role_name='<role_name>',
     # 选填，默认值：False。True：表示强制使用加固模式。False：系统将首先尝试在加固模式下获取凭据。如果失败，则会切换到普通模式（IMDSv1）进行尝试
     # disable_imds_v1=True,
-    # 选填，默认值：True。False：直接使用普通模式（IMDSv1），不探测加固模式，适用于无 IMDSv2 的专有云
-    # enable_imds_v2=False,
 )
 credentialsClient = CredClient(credentialsConfig)
 
