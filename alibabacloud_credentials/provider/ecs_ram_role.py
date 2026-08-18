@@ -42,7 +42,7 @@ class EcsRamRoleCredentialsProvider(ICredentialsProvider):
         self._should_refresh = False
 
         self._role_name = role_name if role_name is not None else au.environment_ecs_metadata
-        self._disable_imds_v1 = disable_imds_v1 if disable_imds_v1 is not None else au.environment_imds_v1_disabled.lower() == 'true'
+        self._disable_imds_v1 = disable_imds_v1 if disable_imds_v1 is not None else str(au.environment_imds_v1_disabled or 'false').lower() == 'true'
         self._http_options = http_options if http_options is not None else HttpOptions()
         self._runtime_options = {
             'connectTimeout': self._http_options.connect_timeout if self._http_options.connect_timeout is not None else EcsRamRoleCredentialsProvider.DEFAULT_CONNECT_TIMEOUT,
@@ -82,27 +82,45 @@ class EcsRamRoleCredentialsProvider(ICredentialsProvider):
     async def get_credentials_async(self) -> Credentials:
         return await self._credentials_cache._async_call()
 
-    def _get_role_name(self, url: str = None) -> str:
+    def _new_get_request(self, pathname: str, url: str = None, metadata_token: str = None):
         tea_request = ph.get_new_request()
         tea_request.headers['host'] = url if url else self.__metadata_service_host
-        metadata_token = self._get_metadata_token(url)
-        if metadata_token is not None:
+        if metadata_token:
             tea_request.headers['X-aliyun-ecs-metadata-token'] = metadata_token
         if not url:
-            tea_request.pathname = self.__url_in_ecs_metadata
+            tea_request.pathname = pathname
+        return tea_request
+
+    def _should_fallback_to_imds_v1(self, metadata_token: str) -> bool:
+        return metadata_token is not None and not self._disable_imds_v1
+
+    def _get_role_name(self, url: str = None) -> str:
+        metadata_token = self._get_metadata_token(url)
+        try:
+            return self._do_get_role_name(url, metadata_token)
+        except Exception:
+            if self._should_fallback_to_imds_v1(metadata_token):
+                return self._do_get_role_name(url, None)
+            raise
+
+    async def _get_role_name_async(self, url: str = None) -> str:
+        metadata_token = await self._get_metadata_token_async(url)
+        try:
+            return await self._do_get_role_name_async(url, metadata_token)
+        except Exception:
+            if self._should_fallback_to_imds_v1(metadata_token):
+                return await self._do_get_role_name_async(url, None)
+            raise
+
+    def _do_get_role_name(self, url: str, metadata_token: str) -> str:
+        tea_request = self._new_get_request(self.__url_in_ecs_metadata, url, metadata_token)
         response = TeaCore.do_action(tea_request, self._runtime_options)
         if response.status_code != 200:
             raise CredentialException(self.__ecs_metadata_fetch_error_msg + ' HttpCode=' + str(response.status_code))
         return response.body.decode('utf-8')
 
-    async def _get_role_name_async(self, url: str = None) -> str:
-        tea_request = ph.get_new_request()
-        tea_request.headers['host'] = url if url else self.__metadata_service_host
-        metadata_token = await self._get_metadata_token_async(url)
-        if metadata_token is not None:
-            tea_request.headers['X-aliyun-ecs-metadata-token'] = metadata_token
-        if not url:
-            tea_request.pathname = self.__url_in_ecs_metadata
+    async def _do_get_role_name_async(self, url: str, metadata_token: str) -> str:
+        tea_request = self._new_get_request(self.__url_in_ecs_metadata, url, metadata_token)
         response = await TeaCore.async_do_action(tea_request, self._runtime_options)
         if response.status_code != 200:
             raise CredentialException(self.__ecs_metadata_fetch_error_msg + ' HttpCode=' + str(response.status_code))
@@ -150,64 +168,43 @@ class EcsRamRoleCredentialsProvider(ICredentialsProvider):
         role_name = self._role_name
         if self._role_name is None or self._role_name == '':
             role_name = self._get_role_name(url)
-        tea_request = ph.get_new_request()
-        tea_request.headers['host'] = url if url else self.__metadata_service_host
         metadata_token = self._get_metadata_token(url)
-        if metadata_token is not None:
-            tea_request.headers['X-aliyun-ecs-metadata-token'] = metadata_token
-        if not url:
-            tea_request.pathname = self.__url_in_ecs_metadata + role_name
-        # request
-        response = TeaCore.do_action(tea_request, self._runtime_options)
-
-        if response.status_code != 200:
-            raise CredentialException(self.__ecs_metadata_fetch_error_msg + ' HttpCode=' + str(response.status_code))
-
-        dic = json.loads(response.body.decode('utf-8'))
-        content_code = dic.get('Code')
-        content_access_key_id = dic.get('AccessKeyId')
-        content_access_key_secret = dic.get('AccessKeySecret')
-        content_security_token = dic.get('SecurityToken')
-        content_expiration = dic.get('Expiration')
-
-        if content_code != 'Success':
-            raise CredentialException(self.__ecs_metadata_fetch_error_msg)
-
-        # 先转换为时间数组
-        time_array = time.strptime(content_expiration, '%Y-%m-%dT%H:%M:%SZ')
-        # 转换为时间戳
-        expiration = calendar.timegm(time_array)
-        credentials = Credentials(
-            access_key_id=content_access_key_id,
-            access_key_secret=content_access_key_secret,
-            security_token=content_security_token,
-            expiration=expiration,
-            provider_name=self.get_provider_name()
-        )
-        self._should_refresh = True
-        return RefreshResult(value=credentials,
-                             stale_time=self._get_stale_time(expiration),
-                             prefetch_time=self._get_prefetch_time(expiration))
+        try:
+            return self._do_refresh_credentials(url, role_name, metadata_token)
+        except Exception:
+            if self._should_fallback_to_imds_v1(metadata_token):
+                return self._do_refresh_credentials(url, role_name, None)
+            raise
 
     async def _refresh_credentials_async(self, url: str = None) -> RefreshResult[Credentials]:
         role_name = self._role_name
         if self._role_name is None:
             role_name = await self._get_role_name_async(url)
-        tea_request = ph.get_new_request()
-        tea_request.headers['host'] = url if url else self.__metadata_service_host
         metadata_token = await self._get_metadata_token_async(url)
-        if metadata_token is not None:
-            tea_request.headers['X-aliyun-ecs-metadata-token'] = metadata_token
-        if not url:
-            tea_request.pathname = self.__url_in_ecs_metadata + role_name
+        try:
+            return await self._do_refresh_credentials_async(url, role_name, metadata_token)
+        except Exception:
+            if self._should_fallback_to_imds_v1(metadata_token):
+                return await self._do_refresh_credentials_async(url, role_name, None)
+            raise
 
-        # request
-        response = await TeaCore.async_do_action(tea_request, self._runtime_options)
-
+    def _do_refresh_credentials(self, url: str, role_name: str, metadata_token: str) -> RefreshResult[Credentials]:
+        tea_request = self._new_get_request(self.__url_in_ecs_metadata + role_name, url, metadata_token)
+        response = TeaCore.do_action(tea_request, self._runtime_options)
         if response.status_code != 200:
             raise CredentialException(self.__ecs_metadata_fetch_error_msg + ' HttpCode=' + str(response.status_code))
+        return self._build_refresh_result(response.body.decode('utf-8'))
 
-        dic = json.loads(response.body.decode('utf-8'))
+    async def _do_refresh_credentials_async(self, url: str, role_name: str,
+                                            metadata_token: str) -> RefreshResult[Credentials]:
+        tea_request = self._new_get_request(self.__url_in_ecs_metadata + role_name, url, metadata_token)
+        response = await TeaCore.async_do_action(tea_request, self._runtime_options)
+        if response.status_code != 200:
+            raise CredentialException(self.__ecs_metadata_fetch_error_msg + ' HttpCode=' + str(response.status_code))
+        return self._build_refresh_result(response.body.decode('utf-8'))
+
+    def _build_refresh_result(self, body: str) -> RefreshResult[Credentials]:
+        dic = json.loads(body)
         content_code = dic.get('Code')
         content_access_key_id = dic.get('AccessKeyId')
         content_access_key_secret = dic.get('AccessKeySecret')
@@ -217,9 +214,7 @@ class EcsRamRoleCredentialsProvider(ICredentialsProvider):
         if content_code != 'Success':
             raise CredentialException(self.__ecs_metadata_fetch_error_msg)
 
-        # 先转换为时间数组
         time_array = time.strptime(content_expiration, '%Y-%m-%dT%H:%M:%SZ')
-        # 转换为时间戳
         expiration = calendar.timegm(time_array)
         credentials = Credentials(
             access_key_id=content_access_key_id,

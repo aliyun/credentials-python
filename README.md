@@ -174,7 +174,7 @@ cred_type = credential.get_type()
 
 ECS instances and elastic container instances can be assigned RAM roles. Programs that run on the instances can use the Credentials tool to automatically obtain an STS token for the RAM role. The STS token can be used to initialize the Credentials client.
 
-By default, the Credentials tool accesses the metadata server of ECS in security hardening mode (IMDSv2). If an exception is thrown, the Credentials tool switches to the normal mode (IMDSv1). You can also configure the `disable_imds_v1` parameter or the *ALIBABA_CLOUD_IMDSV1_DISABLE* environment variable to specify the exception handling logic. Valid values:
+By default, the Credentials tool accesses the metadata server of ECS in security hardening mode (IMDSv2) with no extra enable switch. If any step on the hardening path fails (token fetch or a later metadata GET), the Credentials tool switches to the normal mode (IMDSv1). You can also configure the `disable_imds_v1` parameter or the *ALIBABA_CLOUD_IMDSV1_DISABLE* environment variable to specify the exception handling logic. Valid values:
 
 * false (default): The Credentials tool continues to obtain the access credential in normal mode (IMDSv1).
 

@@ -174,7 +174,7 @@ cred_type = credential.get_type()
 
 ECS和ECI实例均支持绑定实例RAM角色，运行于实例中的程序可通过Credentials工具自动获取该角色的STS Token，从而完成凭据客户端的初始化。
 
-Credentials工具将默认采用加固模式（IMDSv2）访问ECS的元数据服务（Meta Data Server），在使用加固模式时若发生异常，将使用普通模式兜底来获取访问凭据。您也可以通过设置参数`disable_imds_v1`或环境变量 *ALIBABA_CLOUD_IMDSV1_DISABLE* ，执行不同的异常处理逻辑：
+Credentials工具将默认采用加固模式（IMDSv2）访问ECS的元数据服务（Meta Data Server），无需额外开启开关。加固路径中任意一步失败（获取 Token 或后续元数据 GET）时，将使用普通模式（IMDSv1）兜底。您也可以通过设置参数`disable_imds_v1`或环境变量 *ALIBABA_CLOUD_IMDSV1_DISABLE* ，执行不同的异常处理逻辑：
 
 - 当值为false（默认值）时，会使用普通模式继续获取访问凭据。
 
