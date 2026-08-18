@@ -1,3 +1,6 @@
+### 2026-08-18 Version 1.0.12
+* Fix ECS RAM Role: fall back to IMDSv1 when IMDSv2 token succeeds but later metadata requests fail.
+
 ### 2026-08-07 Version 1.0.11
 * Reuse cached OAuth STS credentials until they expire.
 
