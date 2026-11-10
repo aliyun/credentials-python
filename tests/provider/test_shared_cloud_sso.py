@@ -80,3 +80,35 @@ class SharedCloudSSOTest(TestCase):
                                  config.parent / "sso" / "company.json")
                 with self.assertRaisesRegex(CredentialException, "invalid CloudSSO session name"):
                     _cloud_sso_session_path(str(config), "../company")
+
+    def test_writeback_preserves_shared_sessions_and_unknown_fields(self):
+        for mode in ("OAuth", "External"):
+            with self.subTest(mode=mode), TemporaryDirectory() as root:
+                path = Path(root) / "config.json"
+                fixture = {
+                    "current": "writer",
+                    "future_config": {"empty": {}, "nullable": None, "large": 9007199254740993},
+                    "profiles": [
+                        {"name": "writer", "mode": mode, "future_writer": {}},
+                        {"name": "shared", "mode": "CloudSSO", "sso_session": "company",
+                         "future_profile": {"empty": {}}},
+                    ],
+                }
+                provider = CLIProfileCredentialsProvider(profile_file=str(path), profile_name="writer")
+                for asynchronous in (False, True):
+                    path.write_text(json.dumps(fixture), encoding="utf-8")
+                    if mode == "OAuth":
+                        args = ("refresh", "access", "new-ak", "secret", "token", 100, 200)
+                        if asynchronous:
+                            asyncio.run(provider._update_oauth_tokens_async(*args))
+                        else:
+                            provider._update_oauth_tokens(*args)
+                    elif asynchronous:
+                        asyncio.run(provider._update_external_credentials_async("new-ak", "secret", "token", 200))
+                    else:
+                        provider._update_external_credentials("new-ak", "secret", "token", 200)
+                    result = json.loads(path.read_text(encoding="utf-8"))
+                    self.assertEqual("new-ak", result["profiles"][0]["access_key_id"])
+                    self.assertEqual({}, result["profiles"][0]["future_writer"])
+                    self.assertEqual(fixture["profiles"][1], result["profiles"][1])
+                    self.assertEqual(fixture["future_config"], result["future_config"])
