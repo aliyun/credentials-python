@@ -1,3 +1,6 @@
+import hashlib
+import re
+import time
 import os
 import json
 import threading
@@ -52,6 +55,27 @@ def _load_config(file_path: str) -> Any:
     with open(file_path, mode='r') as f:
         content = f.read()
     return json.loads(content)
+
+
+def _cloud_sso_session_path(config_path, name):
+    if not isinstance(name, str) or not re.fullmatch(r'[a-z0-9_-]{1,64}', name):
+        raise CredentialException('invalid CloudSSO session name')
+    config_path = os.path.realpath(config_path)
+    default_path = os.path.realpath(os.path.join(ac.HOME, '.aliyun', 'config.json'))
+    directory = os.path.join(os.path.dirname(config_path), 'sso')
+    if config_path != default_path:
+        directory = os.path.join(directory, hashlib.sha256(config_path.encode('utf-8')).hexdigest())
+    return os.path.join(directory, name + '.json')
+
+
+def _cloud_sso_session_values(session, name):
+    if (not isinstance(session, dict) or session.get('name') != name
+            or not isinstance(session.get('sign_in_url'), str) or not session['sign_in_url']):
+        raise CredentialException(f'invalid CloudSSO session {name}')
+    token, expires_at = session.get('access_token'), session.get('expires_at')
+    if not isinstance(token, str) or not token or type(expires_at) is not int or expires_at <= time.time():
+        raise CredentialException(f'CloudSSO session {name} access token is empty or expired, please re-login with CLI')
+    return session['sign_in_url'], token
 
 
 class CLIProfileCredentialsProvider(ICredentialsProvider):
@@ -198,7 +222,28 @@ class CLIProfileCredentialsProvider(ICredentialsProvider):
                         enable_vpc=profile.get('enable_vpc'),
                     )
                 elif mode == "CloudSSO":
+                    name = profile.get('sso_session')
+                    load_session = load_session_async = None
+                    if name is not None and name != '':
+                        session_path = _cloud_sso_session_path(self._profile_file, name)
+
+                        def load_session():
+                            try:
+                                session = _load_config(session_path)
+                            except (OSError, ValueError):
+                                raise CredentialException(f'unable to read CloudSSO session {name}') from None
+                            return _cloud_sso_session_values(session, name)
+
+                        async def load_session_async():
+                            try:
+                                session = await _load_config_async(session_path)
+                            except (OSError, ValueError):
+                                raise CredentialException(f'unable to read CloudSSO session {name}') from None
+                            return _cloud_sso_session_values(session, name)
+
                     return CloudSSOCredentialsProvider(
+                        _load_session=load_session,
+                        _load_session_async=load_session_async,
                         sign_in_url=profile.get('cloud_sso_sign_in_url'),
                         account_id=profile.get('cloud_sso_account_id'),
                         access_config=profile.get('cloud_sso_access_config'),

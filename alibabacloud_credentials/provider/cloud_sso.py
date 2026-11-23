@@ -27,7 +27,8 @@ class CloudSSOCredentialsProvider(ICredentialsProvider):
                  access_config: str = None,
                  access_token: str = None,
                  access_token_expire: int = 0,
-                 http_options: HttpOptions = None):
+                 http_options: HttpOptions = None,
+                 _load_session=None, _load_session_async=None):
 
         self._sign_in_url = sign_in_url
         self._account_id = account_id
@@ -35,11 +36,13 @@ class CloudSSOCredentialsProvider(ICredentialsProvider):
         self._access_token = access_token
         self._access_token_expire = access_token_expire
 
-        if self._access_token is None or self._access_token_expire == 0 or self._access_token_expire - int(
-                time.mktime(time.localtime())) <= 0:
+        self._load_session = _load_session
+        self._load_session_async = _load_session_async
+        if _load_session is None and (self._access_token is None or self._access_token_expire == 0
+                                      or self._access_token_expire <= time.time()):
             raise ValueError(
                 'CloudSSO access token is empty or expired, please re-login with cli')
-        if self._sign_in_url is None or self._account_id is None or self._access_config is None:
+        if (_load_session is None and self._sign_in_url is None) or self._account_id is None or self._access_config is None:
             raise ValueError(
                 'CloudSSO sign in url or account id or access config is empty')
 
@@ -61,7 +64,8 @@ class CloudSSOCredentialsProvider(ICredentialsProvider):
         return await self._credentials_cache._async_call()
 
     def _refresh_credentials(self) -> RefreshResult[Credentials]:
-        r = urlparse(self._sign_in_url)
+        url, token = self._load_session() if self._load_session else (self._sign_in_url, self._access_token)
+        r = urlparse(url)
         tea_request = ph.get_new_request()
         tea_request.headers['host'] = r.hostname
         tea_request.port = r.port
@@ -76,7 +80,7 @@ class CloudSSOCredentialsProvider(ICredentialsProvider):
 
         tea_request.headers['Accept'] = 'application/json'
         tea_request.headers['Content-Type'] = 'application/json'
-        tea_request.headers['Authorization'] = f'Bearer {self._access_token}'
+        tea_request.headers['Authorization'] = f'Bearer {token}'
 
         response = TeaCore.do_action(tea_request, self._runtime_options)
 
@@ -109,7 +113,8 @@ class CloudSSOCredentialsProvider(ICredentialsProvider):
                              stale_time=_get_stale_time(expiration))
 
     async def _refresh_credentials_async(self) -> RefreshResult[Credentials]:
-        r = urlparse(self._sign_in_url)
+        url, token = await self._load_session_async() if self._load_session_async else (self._sign_in_url, self._access_token)
+        r = urlparse(url)
         tea_request = ph.get_new_request()
         tea_request.headers['host'] = r.hostname
         tea_request.port = r.port
@@ -124,7 +129,7 @@ class CloudSSOCredentialsProvider(ICredentialsProvider):
 
         tea_request.headers['Accept'] = 'application/json'
         tea_request.headers['Content-Type'] = 'application/json'
-        tea_request.headers['Authorization'] = f'Bearer {self._access_token}'
+        tea_request.headers['Authorization'] = f'Bearer {token}'
 
         response = await TeaCore.async_do_action(tea_request, self._runtime_options)
 
