@@ -426,9 +426,11 @@ cred_type = credential.get_type()
 
     如果上述方式均未找到有效的凭据信息，Credentials工具会检查环境变量 ***ALIBABA_CLOUD_CREDENTIALS_URI*** ，如果该变量存在且指向一个有效的URI地址，Credentials会向该URI发起HTTP请求，获取临时安全凭证作为默认凭据。
 
-## 问题
+## 常见问题
 
-[提交 Issue](https://github.com/aliyun/credentials-python/issues/new)，不符合指南的问题可能会立即关闭。
+遇到问题时，请先查看[常见问题文档（FAQ）](./FAQ-CN.md)，其中包含了常见错误及解决方案。
+
+如果 FAQ 无法解决您的问题，欢迎[提交 Issue](https://github.com/aliyun/credentials-python/issues/new)，不符合指南的问题可能会立即关闭。
 
 ## 发行说明
 
